@@ -125,7 +125,7 @@ email:
 # Anyone who knows the topic name can subscribe, so make it long and random,
 # or self-host ntfy / use a reserved topic with a token for access control.
 push:
-  enabled: false
+  enabled: true
   server: https://ntfy.sh
   topic: null             # e.g. mt-billwatch-7f3k9q2x (or set BILLWATCH_NTFY_TOPIC)
-  app_url: null           # your app URL, e.g. https://<user>.github.io/<repo>/ ; tapping the alert opens it
+  app_url: https://michaelcassens.github.io/MTBills/           # your app URL, e.g. https://<user>.github.io/<repo>/ ; tapping the alert opens it

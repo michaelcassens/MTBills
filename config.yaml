@@ -1,0 +1,131 @@
+# Montana Bill Watch configuration
+# Secrets are NOT stored here. Set them as environment variables:
+#   LEGISCAN_API_KEY          - free key from https://legiscan.com/legiscan
+#   BILLWATCH_SMTP_PASSWORD   - only if you want emailed digests
+#   BILLWATCH_NTFY_TOPIC      - push topic (overrides push.topic below)
+#   BILLWATCH_NTFY_TOKEN      - only if your ntfy topic requires login
+
+data_dir: data            # SQLite db, downloaded PDFs, digests, CSV inbox
+site_dir: docs            # mobile app + feed.json (GitHub Pages serves /docs)
+
+legiscan:
+  state: MT
+  session_id: null        # null = LegiScan's current MT session; run `legiscan-sessions` to list IDs
+  fetch_text: true        # download PDFs for new text versions
+  request_delay: 0.3      # seconds between API calls
+
+# LC statuses where draft text is likely viewable in Bill Explorer.
+# A change INTO one of these creates a "check the text" alert.
+text_likely_statuses:
+  - Draft Delivered to Requester
+  - Draft Ready for Delivery
+  - Introduced
+  - Bill Introduced
+  - Chapter Number Assigned
+
+# ---------------------------------------------------------------------------
+# Screening. Terms are case-insensitive regular expressions matched on word
+# boundaries. Score = sum of tier weights for each distinct term matched.
+# Tune freely: a missed bill costs more than an extra alert.
+# ---------------------------------------------------------------------------
+screening:
+  min_score_for_digest: 2
+
+  tiers:
+    direct:
+      weight: 10
+      terms:
+        - tribal
+        - tribes?
+        - tribally
+        - indian
+        - indigenous
+        - native americans?
+        - american indians?
+        - reservations?
+        - (tribal|indian) trust lands?
+        - allotments?|allottees?|fee-to-trust
+        - state-tribal
+        - sovereign(ty)?
+        - ICWA
+        - indian child welfare
+        - indian education for all
+        - tribal colleges?
+        - MMIP|missing (and murdered )?indigenous
+        - water (rights )?compacts?
+        - reserved water rights?
+        - government-to-government
+        - repatriation
+        - burial sites?
+        - sacred sites?
+
+    geographic:
+      weight: 5
+      terms:
+        - blackfeet
+        - crow
+        - flathead reservation
+        - salish
+        - kootenai
+        - CSKT
+        - fort belknap
+        - aaniiih|gros ventre
+        - assiniboine
+        - fort peck
+        - sioux
+        - northern cheyenne
+        - rocky boy('?s)?
+        - chippewa
+        - cree
+        - little shell
+        # Counties overlapping or bordering reservations (require "County")
+        - (glacier|pondera|lake|sanders|flathead|blaine|phillips|roosevelt|valley|daniels|sheridan|big horn|yellowstone|treasure|rosebud|hill|chouteau|cascade) county
+
+    indirect:
+      weight: 2
+      terms:
+        - water rights?
+        - water use
+        - instream flows?
+        - data centers?
+        - mining|mines?|mineral
+        - oil and gas
+        - pipelines?
+        - transmission lines?
+        - eminent domain
+        - hunting|fishing|trapping
+        - bison|buffalo
+        - wildlife
+        - state trust lands?
+        - jurisdiction
+        - law enforcement
+        - child protective|foster care|child welfare
+        - medicaid
+        - behavioral health
+        - voter id|polling places?|voter registration
+        - school funding|school facilit(y|ies)
+        - broadband
+        - cultural|historic preservation
+        - grazing
+        - consultation
+        - public lands?
+
+# Email digest (optional). Leave enabled: false to just write files.
+email:
+  enabled: false
+  smtp_host: smtp.office365.com
+  smtp_port: 587
+  username: you@example.org
+  from_addr: you@example.org
+  to_addrs:
+    - you@example.org
+  subject_prefix: "[MT Bill Watch]"
+
+# Push notifications via ntfy (free app for iOS/Android: https://ntfy.sh).
+# Anyone who knows the topic name can subscribe, so make it long and random,
+# or self-host ntfy / use a reserved topic with a token for access control.
+push:
+  enabled: false
+  server: https://ntfy.sh
+  topic: null             # e.g. mt-billwatch-7f3k9q2x (or set BILLWATCH_NTFY_TOPIC)
+  app_url: null           # your app URL, e.g. https://<user>.github.io/<repo>/ ; tapping the alert opens it

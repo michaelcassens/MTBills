@@ -1,7 +1,1345 @@
 {
- "generated": "2026-11-17T13:26:52Z",
- "count": 1189,
+ "generated": "2026-11-17T23:31:36Z",
+ "count": 1220,
  "items": [
+  {
+   "key": "bill:2163715",
+   "kind": "bill",
+   "id": "SJ3 (LC0369)",
+   "title": "Interim study of local government audits",
+   "who": "Becky Beard",
+   "status": "Introduced: (S) Introduced",
+   "tier": "indirect",
+   "score": 2,
+   "basis": "full text",
+   "terms": [
+    "consultation"
+   ],
+   "snippets": [
+    "…ties; and 11 (5) tracking the work of state associations on this topic and consideration of developing, in 12 consultation with accounting experts and associations, a new level of financial compliance review that is 13 appropriate f…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0369",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0369?open_tab=docs#16812094",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:31:32Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:31:32Z",
+     "detail": "Matched indirect terms (full text)"
+    },
+    {
+     "ts": "2026-11-17T23:31:31Z",
+     "detail": "SJ3 introduced: Interim study of local government audits"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163737",
+   "kind": "bill",
+   "id": "SB31 (LC0324)",
+   "title": "Revise firearm accessories and firearm laws",
+   "who": "Gayle Lammers",
+   "status": "Introduced: (S) Introduced",
+   "tier": "indirect",
+   "score": 12,
+   "basis": "full text",
+   "terms": [
+    "buffalo",
+    "hunting",
+    "jurisdiction",
+    "mining",
+    "public lands",
+    "wildlife"
+   ],
+   "snippets": [
+    "…otocol. 5 6 NEW SECTION. Section 5. Securities exemptions. (1) A business offering to provide digital asset 7 mining as a service or staking as a service for individuals or to other businesses may not be considered as 8 offeri…",
+    "…WS CONCERNING SHORT- 5 BARRELED RIFLES, SHOTGUNS, FIREARMS, AND SILENCERS; REMOVING THE PROHIBITION 6 AGAINST HUNTING WITH A SILENCER OR MUFFLING DEVICE; ALIGNING REFERENCES TO 7 REGISTRATION OF SILENCERS UNDER FEDERAL LAW WITH…",
+    "…c) declare areas open to the hunting of deer, antelope, elk, moose, sheep, goat, mountain lion, 28 bear, wild buffalo or bison, and wolf by persons holding an archery stamp and the required license, permit, or 70th Legislature …"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0324",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0324?open_tab=docs#16809584",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:31:30Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:31:30Z",
+     "detail": "SB31 introduced: Revise firearm accessories and firearm laws"
+    },
+    {
+     "ts": "2026-11-17T23:31:30Z",
+     "detail": "Matched indirect terms (full text)"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163727",
+   "kind": "bill",
+   "id": "SB29 (LC0366)",
+   "title": "Revise ballot language for levy or bond impact on residence",
+   "who": "Dave Fern",
+   "status": "Introduced: (S) Introduced",
+   "tier": "indirect",
+   "score": 2,
+   "basis": "full text",
+   "terms": [
+    "jurisdiction"
+   ],
+   "snippets": [
+    "…de to taxing 23 jurisdictions a tool for calculating the impact of a bond election on a residence. The taxing jurisdiction 24 conducting the bond election may replace the estimate of the impact of the election on a home valued at 25…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0366",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0366?open_tab=docs#16812053",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:31:29Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:31:29Z",
+     "detail": "Matched indirect terms (full text)"
+    },
+    {
+     "ts": "2026-11-17T23:31:28Z",
+     "detail": "SB29 introduced: Revise ballot language for levy or bond impact on residence"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163724",
+   "kind": "bill",
+   "id": "SB28 (LC0053)",
+   "title": "Revise residential property taxes",
+   "who": "Dave Fern",
+   "status": "Introduced: (S) Introduced",
+   "tier": "indirect",
+   "score": 4,
+   "basis": "full text",
+   "terms": [
+    "jurisdiction",
+    "public land"
+   ],
+   "snippets": [
+    "…he amount of any refund or credit for overpayment of income taxes imposed by this state or 2 any other taxing jurisdiction to the extent included in gross income for federal income tax purposes but not 3 previously allowed as a dedu…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0053",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0053?open_tab=docs#16812051",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:31:28Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:31:28Z",
+     "detail": "Matched indirect terms (full text)"
+    },
+    {
+     "ts": "2026-11-17T23:31:27Z",
+     "detail": "SB28 introduced: Revise residential property taxes"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163710",
+   "kind": "bill",
+   "id": "SB27 (LC0549)",
+   "title": "Revise special education finance laws to increase total SPED allocation",
+   "who": "David Bedey",
+   "status": "Introduced: (S) Introduced",
+   "tier": "direct",
+   "score": 50,
+   "basis": "full text",
+   "terms": [
+    "american indian",
+    "buffalo",
+    "fishing",
+    "indian",
+    "indian education for all",
+    "indigenous",
+    "jurisdiction",
+    "school funding",
+    "wildlife"
+   ],
+   "snippets": [
+    "… total quality educator and qualified staff payment; 3 (c) the total at-risk student payment; 4 (d) the total Indian education for all payment; 5 (e) the total American Indian achievement gap payment; 6 (f) the total data-for-…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0549",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0549?open_tab=docs#16809563",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:31:27Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:31:27Z",
+     "detail": "Matched direct terms (full text)"
+    },
+    {
+     "ts": "2026-11-17T23:31:26Z",
+     "detail": "SB27 introduced: Revise special education finance laws to increase total SPED allocation"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163752",
+   "kind": "bill",
+   "id": "SB25 (LC0496)",
+   "title": "Establish recreational marijuana impact report",
+   "who": "Michael Yakawich",
+   "status": "Introduced: (S) Introduced",
+   "tier": "indirect",
+   "score": 6,
+   "basis": "full text",
+   "terms": [
+    "behavioral health",
+    "consultation",
+    "medicaid"
+   ],
+   "snippets": [
+    "…ount money received from legislative general fund transfers. 10 (3) Eligible uses of the fund include: 11 (a) medicaid and CHIP matching funds for payments made to behavioral health settings; 12 (b) medicaid and CHIP matching fu…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0496",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0496?open_tab=docs#16809561",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:31:25Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:31:25Z",
+     "detail": "Matched indirect terms (full text)"
+    },
+    {
+     "ts": "2026-11-17T23:31:24Z",
+     "detail": "SB25 introduced: Establish recreational marijuana impact report"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163729",
+   "kind": "bill",
+   "id": "SB24 (LC0503)",
+   "title": "Revise infrastructure controlled by critical artificial intelligence system laws",
+   "who": "Daniel Zolnikov",
+   "status": "Introduced: (S) Introduced",
+   "tier": "direct",
+   "score": 10,
+   "basis": "full text",
+   "terms": [
+    "tribal"
+   ],
+   "snippets": [
+    "…gram, including nongovernment revenue; 25 (2) administrative needs; 26 (3) coordination between city, county, tribal, and state governments; and 27 (4) statewide standards for citizen review boards that provide for overall con…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0503",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0503?open_tab=docs#16809559",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:31:24Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:31:24Z",
+     "detail": "SB24 introduced: Revise infrastructure controlled by critical artificial intelligence system laws"
+    },
+    {
+     "ts": "2026-11-17T23:31:24Z",
+     "detail": "Matched direct terms (full text)"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163704",
+   "kind": "bill",
+   "id": "SB23 (LC0504)",
+   "title": "Generally revise privacy laws",
+   "who": "Daniel Zolnikov",
+   "status": "Introduced: (S) Introduced",
+   "tier": "indirect",
+   "score": 8,
+   "basis": "full text",
+   "terms": [
+    "child welfare",
+    "jurisdiction",
+    "law enforcement",
+    "medicaid"
+   ],
+   "snippets": [
+    "…ce distribution in all counties and judicial districts; and 23 WHEREAS, expanding the Child Protection Unit's jurisdiction to handle all child abuse and dependent 24 neglect cases would require an evaluation of the financial, logist…",
+    "…he provisions of 44-6-104 requiring a valid legal process for disclosing genetic or 7 neurotechnology data to law enforcement or any other government agency without a consumer's express 8 consent; 9 (5) develop, implement, and maintain…",
+    "…destruction of the sample; and 11 (d) when a clinical laboratory is certified by the centers for medicare and medicaid services, when 12 the retention of a patient's biological sample does not exceed the time needed for complian…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0504",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0504?open_tab=docs#16809557",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:31:23Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:31:23Z",
+     "detail": "SB23 introduced: Generally revise privacy laws"
+    },
+    {
+     "ts": "2026-11-17T23:31:23Z",
+     "detail": "Matched indirect terms (full text)"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163714",
+   "kind": "bill",
+   "id": "SB22 (LC0103)",
+   "title": "Establish equal parenting time presumption law",
+   "who": "Daniel Zolnikov",
+   "status": "Introduced: (S) Introduced",
+   "tier": "indirect",
+   "score": 4,
+   "basis": "full text",
+   "terms": [
+    "hunting",
+    "wildlife"
+   ],
+   "snippets": [
+    "…income 23 tax returns and required under 87-2-102 to establish the residency requirements of an applicant for hunting and 24 fishing licenses; 25 (d) to the board of regents information required under 20-26-1111; 26 (e) to the …"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0103",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0103?open_tab=docs#16809556",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:31:22Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:31:22Z",
+     "detail": "SB22 introduced: Establish equal parenting time presumption law"
+    },
+    {
+     "ts": "2026-11-17T23:31:22Z",
+     "detail": "Matched indirect terms (full text)"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163708",
+   "kind": "bill",
+   "id": "SB21 (LC0102)",
+   "title": "Create use of force defense for family members of minor sexual abuse victims",
+   "who": "Daniel Zolnikov",
+   "status": "Introduced: (S) Introduced",
+   "tier": "direct",
+   "score": 18,
+   "basis": "full text",
+   "terms": [
+    "broadband",
+    "jurisdiction",
+    "law enforcement",
+    "medicaid",
+    "reservation"
+   ],
+   "snippets": [
+    "… to insurance upon a particular subject or that relate to the 10 manner of distribution of benefits or to the reservation of rights and benefits under life or disability insurance 11 policies and are used at the request of the indi…",
+    "… 15 (a) proof that the applicant completed a course of training required by a municipal, state, or federal 16 law enforcement agency or a branch of the armed forces to carry out the duties of a peace officer; or 17 (b) proof of on-the-…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0102",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0102?open_tab=docs#16807095",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:31:20Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:31:20Z",
+     "detail": "Matched direct terms (full text)"
+    },
+    {
+     "ts": "2026-11-17T23:31:18Z",
+     "detail": "SB21 introduced: Create use of force defense for family members of minor sexual abuse victims"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163755",
+   "kind": "bill",
+   "id": "SB20 (LC0509)",
+   "title": "Limit certain features of social media for minors",
+   "who": "Daniel Zolnikov",
+   "status": "Introduced: (S) Introduced",
+   "tier": "indirect",
+   "score": 10,
+   "basis": "full text",
+   "terms": [
+    "broadband",
+    "hunting",
+    "jurisdiction",
+    "public land",
+    "wildlife"
+   ],
+   "snippets": [
+    "…esponsibilities of the department related to fish and wildlife as provided by law; 18 (b) shall establish the hunting, fishing, and trapping rules of the department; 19 (c) except as provided in 23-1-111 and 87-1-303(3), shall …",
+    "…es of the department 20 governing the use of lands owned or controlled by the department and waters under the jurisdiction of the 21 department; 22 (d) shall establish the rules of the department governing the public use of private …",
+    "…he service. 24 (b) The term does not include a telecommunications service as defined in 47 U.S.C. 153 or a 25 broadband internet access service as defined in 47 CFR 8.1(b). 26 (4) \"Age signal\" means a representation of a user's a…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0509",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0509?open_tab=docs#16809554",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:31:18Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:31:18Z",
+     "detail": "Matched indirect terms (full text)"
+    },
+    {
+     "ts": "2026-11-17T23:31:17Z",
+     "detail": "SB20 introduced: Limit certain features of social media for minors"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163738",
+   "kind": "bill",
+   "id": "SB18 (LC0393)",
+   "title": "Make voter address verification notices forwardable",
+   "who": "Theresa Manzella",
+   "status": "Introduced: (S) Introduced",
+   "tier": "indirect",
+   "score": 4,
+   "basis": "full text",
+   "terms": [
+    "jurisdiction",
+    "voter registration"
+   ],
+   "snippets": [
+    "…tion 18 requested\" notice to all registered electors, including electors on the absentee ballot list, of each jurisdiction to 19 confirm their addresses and provide the appropriate confirmation notice to those individuals who return…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0393",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0393?open_tab=docs#16807093",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:31:16Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:31:16Z",
+     "detail": "Matched indirect terms (full text)"
+    },
+    {
+     "ts": "2026-11-17T23:31:15Z",
+     "detail": "SB18 introduced: Make voter address verification notices forwardable"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163748",
+   "kind": "bill",
+   "id": "SB17 (LC0394)",
+   "title": "Revise the process for death notifications for updating the statewide voter registration list",
+   "who": "Theresa Manzella",
+   "status": "Introduced: (S) Introduced",
+   "tier": "indirect",
+   "score": 2,
+   "basis": "full text",
+   "terms": [
+    "voter registration"
+   ],
+   "snippets": [
+    "Revise the process for death notifications for updating the statewide voter registration list Revise the process for death notifications for updating the statewide voter registration list 70th Legis…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0394",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0394?open_tab=docs#16804600",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:31:15Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:31:15Z",
+     "detail": "SB17 introduced: Revise the process for death notifications for updating the statewide voter registration list"
+    },
+    {
+     "ts": "2026-11-17T23:31:15Z",
+     "detail": "Matched indirect terms (full text)"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163753",
+   "kind": "bill",
+   "id": "SB16 (LC0398)",
+   "title": "Revise and align timelines for election notices",
+   "who": "Theresa Manzella",
+   "status": "Introduced: (S) Introduced",
+   "tier": "direct",
+   "score": 12,
+   "basis": "full text",
+   "terms": [
+    "polling place",
+    "tribal"
+   ],
+   "snippets": [
+    "…s best suited to reach the largest number of potential electors.\" 3 4 NEW SECTION. Section 4. Notification to tribal governments. The secretary of state shall send a 5 copy of [this act] to each federally recognized tribal gov…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0398",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0398?open_tab=docs#16807091",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:31:14Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:31:14Z",
+     "detail": "SB16 introduced: Revise and align timelines for election notices"
+    },
+    {
+     "ts": "2026-11-17T23:31:14Z",
+     "detail": "Matched direct terms (full text)"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163743",
+   "kind": "bill",
+   "id": "SB14 (LC0379)",
+   "title": "Revise water mitigation laws",
+   "who": "Willis Curdy",
+   "status": "Introduced: (S) Introduced",
+   "tier": "direct",
+   "score": 40,
+   "basis": "full text",
+   "terms": [
+    "indian",
+    "instream flow",
+    "mining",
+    "reservation",
+    "reserved water rights",
+    "water right",
+    "water use",
+    "wildlife"
+   ],
+   "snippets": [
+    "…r that would be 13 protected under the law as it existed prior to July 1, 1973. The term includes federal non-Indian and Indian 14 reserved water rights created under federal law and water rights created under state law. 15 (1…",
+    "…rom an existing valid 14 appropriation through application of water-saving methods. 15 (24) (23) \"State water reservation\" means a water right created under state law after July 1, 16 1973, that reserves water for existing or futur…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0379",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0379?open_tab=docs#16804596",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:31:13Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:31:13Z",
+     "detail": "Matched direct terms (full text)"
+    },
+    {
+     "ts": "2026-11-17T23:31:12Z",
+     "detail": "SB14 introduced: Revise water mitigation laws"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163756",
+   "kind": "bill",
+   "id": "SB13 (LC0346)",
+   "title": "Revise FWP authority for instream flows",
+   "who": "Wylie Galt",
+   "status": "Introduced: (S) Introduced",
+   "tier": "indirect",
+   "score": 8,
+   "basis": "full text",
+   "terms": [
+    "instream flows",
+    "water rights",
+    "water use",
+    "wildlife"
+   ],
+   "snippets": [
+    "… WILDLIFE, AND PARKS RELATED TO INSTREAM FLOWS TO BENEFIT FISHERIES; REMOVING 6 TERMINATION DATES FOR LEASING WATER RIGHTS FOR INSTREAM FLOWS; AND AMENDING 7 SECTION 85-2-436, MCA.” 8 9 BE IT ENACTED BY THE LEGISLATURE OF THE STATE …",
+    "…d for the reversion 21 of a leased appropriation right to the lessor's previous use. 22 (i) A person issued a water use permit with a priority of appropriation after the date of filing of an 23 application for a change in appropr…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0346",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0346?open_tab=docs#16807087",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:31:12Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:31:12Z",
+     "detail": "Matched indirect terms (full text)"
+    },
+    {
+     "ts": "2026-11-17T23:31:11Z",
+     "detail": "SB13 introduced: Revise FWP authority for instream flows"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163721",
+   "kind": "bill",
+   "id": "SB11 (LC0365)",
+   "title": "Revise property tax relief funded with growth and opportunity trust",
+   "who": "Michael Yakawich",
+   "status": "Introduced: (S) Introduced",
+   "tier": "indirect",
+   "score": 2,
+   "basis": "full text",
+   "terms": [
+    "jurisdiction"
+   ],
+   "snippets": [
+    "…f of the state as required by 15-1-504; or 11 (c) remit any other amounts owed to the state or another taxing jurisdiction.\" 12 13 Section 4. Section 15-6-703, MCA, is amended to read: 14 \"15-6-703. Certification of primary residenc…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0365",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0365?open_tab=docs#16804595",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:31:10Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:31:10Z",
+     "detail": "Matched indirect terms (full text)"
+    },
+    {
+     "ts": "2026-11-17T23:31:09Z",
+     "detail": "SB11 introduced: Revise property tax relief funded with growth and opportunity trust"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163705",
+   "kind": "bill",
+   "id": "SB9 (LC0134)",
+   "title": "Increase penalties for multiple violations of no contact and protection orders",
+   "who": "Michael Yakawich",
+   "status": "Introduced: (S) Introduced",
+   "tier": "indirect",
+   "score": 4,
+   "basis": "full text",
+   "terms": [
+    "jurisdiction",
+    "law enforcement"
+   ],
+   "snippets": [
+    "…on for an order of protection or for service of an order of 3 protection whether served inside or outside the jurisdiction of the court issuing the order. 4 (9) Any temporary order of protection or order of protection must conspicuo…",
+    "…r -- notice -- violation of order -- 13 penalty. (1) A court may issue a standing no contact order and direct law enforcement to serve the order on a 14 defendant charged with or arrested for a violation of 45-5-206 or, if the victim i…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0134",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0134?open_tab=docs#16804591",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:31:08Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:31:08Z",
+     "detail": "Matched indirect terms (full text)"
+    },
+    {
+     "ts": "2026-11-17T23:31:07Z",
+     "detail": "SB9 introduced: Increase penalties for multiple violations of no contact and protection orders"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163730",
+   "kind": "bill",
+   "id": "SB7 (LC0262)",
+   "title": "Provide income tax deduction for qualified business income",
+   "who": "Greg Hertz",
+   "status": "Introduced: (S) Introduced",
+   "tier": "direct",
+   "score": 68,
+   "basis": "full text",
+   "terms": [
+    "american indian",
+    "cultural",
+    "indian",
+    "indian education for all",
+    "jurisdiction",
+    "public land",
+    "school funding",
+    "tribal",
+    "tribal colleges",
+    "tribe"
+   ],
+   "snippets": [
+    "…mersion programs and in doing so: 3 (a) collaborate with other school districts, the Montana digital academy, tribal governments, and 4 tribal colleges; 5 (b) utilize materials produced in the Montana Indian language preservat…",
+    "…ntellectual property rights from materials developed for an Indian language 3 immersion program belong to the tribe to which the materials relate. Use of the cultural and intellectual property 4 outside of the Indian language…",
+    "…he amount of any refund or credit for overpayment of income taxes imposed by this state or 2 any other taxing jurisdiction to the extent included in gross income for federal income tax purposes but not 3 previously allowed as a dedu…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0262",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0262?open_tab=docs#16807077",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:31:05Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:31:05Z",
+     "detail": "Matched direct terms (full text)"
+    },
+    {
+     "ts": "2026-11-17T23:31:04Z",
+     "detail": "SB7 introduced: Provide income tax deduction for qualified business income"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163720",
+   "kind": "bill",
+   "id": "SB5 (LC0508)",
+   "title": "Generally revise public utility laws related to large load retail customers",
+   "who": "Daniel Zolnikov",
+   "status": "Introduced: (S) Introduced",
+   "tier": "indirect",
+   "score": 4,
+   "basis": "full text",
+   "terms": [
+    "data centers",
+    "mining"
+   ],
+   "snippets": [
+    "… experiencing rapid and unprecedented projected load 15 growth from large load electricity customers, such as data centers, that presents challenges for public utilities, 16 the electric grid, regulators, and other electricity custo…",
+    "…22 local government.\" 23 24 Section 2. Section 69-3-332, MCA, is amended to read: 25 \"69-3-332. Digital asset mining ratemaking. (1) The commission may not establish a rate 26 classification for digital asset mining, a digital…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0508",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0508?open_tab=docs#16804588",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:31:03Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:31:03Z",
+     "detail": "Matched indirect terms (full text)"
+    },
+    {
+     "ts": "2026-11-17T23:31:02Z",
+     "detail": "SB5 introduced: Generally revise public utility laws related to large load retail customers"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163757",
+   "kind": "bill",
+   "id": "SB3 (LC0260)",
+   "title": "Sunset or reapprove existing voter approved levies",
+   "who": "Greg Hertz",
+   "status": "Introduced: (S) Introduced",
+   "tier": "direct",
+   "score": 36,
+   "basis": "full text",
+   "terms": [
+    "child welfare",
+    "indian",
+    "indian child welfare",
+    "jurisdiction",
+    "law enforcement",
+    "tribal"
+   ],
+   "snippets": [
+    "…of the 18 parties pursuant to 41-3-434 and order of the court.\" 19 20 NEW SECTION. Section 4. Notification to tribal governments. The secretary of state shall send a 21 copy of [this act] to each federally recognized tribal go…",
+    "…(a) must be: 70th Legislature 2027 SB 3.1 - 3 - Authorized Print Version – SB 3 1 (i) remitted to each taxing jurisdiction for which the mill rates are included in the calculation of the 2 tax increment as provided in subsections (1…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0260",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0260?open_tab=docs#16804584",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:31:01Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:31:01Z",
+     "detail": "Matched direct terms (full text)"
+    },
+    {
+     "ts": "2026-11-17T23:31:00Z",
+     "detail": "SB3 introduced: Sunset or reapprove existing voter approved levies"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163736",
+   "kind": "bill",
+   "id": "SB1 (LC0112)",
+   "title": "Revising private nuisance laws related to marijuana businesses",
+   "who": "Becky Beard",
+   "status": "Introduced: (S) Introduced",
+   "tier": "indirect",
+   "score": 2,
+   "basis": "full text",
+   "terms": [
+    "jurisdiction"
+   ],
+   "snippets": [
+    "…employer and employee participation in the plan. 21 (4) \"Continuous employment\" means working within the same jurisdiction without a break in 22 service of more than 5 working days or without a continuous absence without pay of more…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0112",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0112?open_tab=docs#16804580",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:30:59Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:30:59Z",
+     "detail": "SB1 introduced: Revising private nuisance laws related to marijuana businesses"
+    },
+    {
+     "ts": "2026-11-17T23:30:59Z",
+     "detail": "Matched indirect terms (full text)"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163739",
+   "kind": "bill",
+   "id": "HB36 (LC0452)",
+   "title": "Establish the uniform common interest ownership act",
+   "who": "Alanah Griffith",
+   "status": "Introduced: (H) Introduced",
+   "tier": "direct",
+   "score": 14,
+   "basis": "full text",
+   "terms": [
+    "eminent domain",
+    "jurisdiction",
+    "reservation"
+   ],
+   "snippets": [
+    "…pment right to create at least 500 units that may be used for residential purposes, and at the time of the 12 reservation that declarant owns or controls more than 500 acres on which the units may be built. 13 (2) If the requiremen…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0452",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0452?open_tab=docs#16812082",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:30:58Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:30:58Z",
+     "detail": "Matched direct terms (full text)"
+    },
+    {
+     "ts": "2026-11-17T23:30:56Z",
+     "detail": "HB36 introduced: Establish the uniform common interest ownership act"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163711",
+   "kind": "bill",
+   "id": "HB35 (LC0378)",
+   "title": "Allow water rights to certain subdivisions",
+   "who": "Russel Miner",
+   "status": "Introduced: (H) Introduced",
+   "tier": "direct",
+   "score": 24,
+   "basis": "full text",
+   "terms": [
+    "indian",
+    "reservation",
+    "water rights",
+    "water use"
+   ],
+   "snippets": [
+    "… to 85-20-1902, the provisions of this section do not apply within the exterior 15 boundaries of the Flathead Indian reservation.\" 16 17 NEW SECTION. Section 2. Effective date. [This act] is effective on passage and approval. …"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0378",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0378?open_tab=docs#16809582",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:30:56Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:30:56Z",
+     "detail": "Matched direct terms (full text)"
+    },
+    {
+     "ts": "2026-11-17T23:30:55Z",
+     "detail": "HB35 introduced: Allow water rights to certain subdivisions"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163742",
+   "kind": "bill",
+   "id": "HB34 (LC0501)",
+   "title": "Establish railroad crossing clarity act",
+   "who": "Gary Parry",
+   "status": "Introduced: (H) Introduced",
+   "tier": "indirect",
+   "score": 4,
+   "basis": "full text",
+   "terms": [
+    "eminent domain",
+    "pipeline"
+   ],
+   "snippets": [
+    "… cooperative, 12 transmission company, gas utility, municipal utility, municipal power utility, municipality, pipeline company, rural 13 water system, or telephone, telegraph, telecommunications, cable, or fiber optic provider. …",
+    "… not impair the 24 existing authority of a utility to secure crossing rights by easement through the power of eminent domain 25 provided in Title 70, chapter 30. 26 (2) A utility is not required to undertake a crossing in accordance w…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0501",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0501?open_tab=docs#16812080",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:30:55Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:30:55Z",
+     "detail": "Matched indirect terms (full text)"
+    },
+    {
+     "ts": "2026-11-17T23:30:54Z",
+     "detail": "HB34 introduced: Establish railroad crossing clarity act"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163749",
+   "kind": "bill",
+   "id": "HB32 (LC0450)",
+   "title": "Allow a resort area district to create a targeted economic development district",
+   "who": "Alanah Griffith",
+   "status": "Introduced: (H) Introduced",
+   "tier": "indirect",
+   "score": 2,
+   "basis": "full text",
+   "terms": [
+    "jurisdiction"
+   ],
+   "snippets": [
+    "… resort area district may: 15 (a) have perpetual succession; 16 (b) sue and be sued in any court of competent jurisdiction; 17 (c) acquire by any legal means real and personal property necessary to the full exercise of its 18 powers…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0450",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0450?open_tab=docs#16812076",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:30:53Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:30:53Z",
+     "detail": "Matched indirect terms (full text)"
+    },
+    {
+     "ts": "2026-11-17T23:30:52Z",
+     "detail": "HB32 introduced: Allow a resort area district to create a targeted economic development district"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163709",
+   "kind": "bill",
+   "id": "HB31 (LC0548)",
+   "title": "Create special education extraordinary costs program",
+   "who": "Eric Matthews",
+   "status": "Introduced: (H) Introduced",
+   "tier": "direct",
+   "score": 24,
+   "basis": "full text",
+   "terms": [
+    "grazing",
+    "school funding",
+    "tribal",
+    "tribes"
+   ],
+   "snippets": [
+    "…f: 10 (a) firefighting operations in Montana by the state and federal governments, including operations 11 on tribal land and private land, and the management policies affecting the success of those operations; 12 (b) the effi…",
+    "….1 - 1 - Authorized Print Version – HB 31 1 HOUSE BILL NO. 31 2 INTRODUCED BY E. MATTHEWS 3 BY REQUEST OF THE SCHOOL FUNDING INTERIM COMMISSION 4 5 A BILL FOR AN ACT ENTITLED: “AN ACT GENERALLY REVISING SPECIAL EDUCATION FUNDING LAWS …"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0548",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0548?open_tab=docs#16812075",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:30:52Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:30:52Z",
+     "detail": "HB31 introduced: Create special education extraordinary costs program"
+    },
+    {
+     "ts": "2026-11-17T23:30:52Z",
+     "detail": "Matched direct terms (full text)"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163747",
+   "kind": "bill",
+   "id": "HB30 (LC0553)",
+   "title": "Establish funding for students with limited English proficiency",
+   "who": "Eric Matthews",
+   "status": "Introduced: (H) Introduced",
+   "tier": "direct",
+   "score": 34,
+   "basis": "full text",
+   "terms": [
+    "american indian",
+    "indian",
+    "indian education for all",
+    "school funding",
+    "water right"
+   ],
+   "snippets": [
+    "… total quality educator and qualified staff payment; 6 (c) the total at-risk student payment; 7 (d) the total Indian education for all payment; 8 (e) the total American Indian achievement gap payment; 9 (f) the total data-for-…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0553",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0553?open_tab=docs#16809579",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:30:51Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:30:51Z",
+     "detail": "Matched direct terms (full text)"
+    },
+    {
+     "ts": "2026-11-17T23:30:50Z",
+     "detail": "HB30 introduced: Establish funding for students with limited English proficiency"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163740",
+   "kind": "bill",
+   "id": "HB29 (LC0551)",
+   "title": "Revise school funding interim commission statutory requirements and review timeline",
+   "who": "Eric Matthews",
+   "status": "Introduced: (H) Introduced",
+   "tier": "direct",
+   "score": 48,
+   "basis": "full text",
+   "terms": [
+    "american indians",
+    "consultation",
+    "cultural",
+    "indian",
+    "school funding",
+    "tribal",
+    "tribes",
+    "water use"
+   ],
+   "snippets": [
+    "…statutory responsibilities. 18 (4) The legislature recognizes that streamflow information collected by state, tribal, and federal 19 entities is critical to the administration of the Montana Water Use Act, distribution of wate…",
+    "…qualified for services under 29 U.S.C. 794, and gifted and 23 talented children; 24 (e) the needs of American Indian students; and 25 (f) the ability of school districts to attract and retain qualified educators and other pers…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0551",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0551?open_tab=docs#16812073",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:30:50Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:30:50Z",
+     "detail": "Matched direct terms (full text)"
+    },
+    {
+     "ts": "2026-11-17T23:30:49Z",
+     "detail": "HB29 introduced: Revise school funding interim commission statutory requirements and review timeline"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163762",
+   "kind": "bill",
+   "id": "HB26 (LC0493)",
+   "title": "Dental and dental hygienist compact",
+   "who": "Jodee Etchart",
+   "status": "Introduced: (H) Introduced",
+   "tier": "direct",
+   "score": 56,
+   "basis": "full text",
+   "terms": [
+    "foster care",
+    "indian",
+    "indian child welfare",
+    "jurisdiction",
+    "law enforcement",
+    "sovereign",
+    "tribal",
+    "tribe"
+   ],
+   "snippets": [
+    "…untry: 2 (a) a department, agency, or organization, including a federal agency, military enclave, or Indian 3 tribal organization, that is legally authorized to receive, inspect, or investigate reports of child abuse or neglec…",
+    "…s is necessary 17 for administration of programs designed to benefit the child; 18 (r) an agency of an Indian tribe, a qualified expert witness, or the relatives of an Indian child if 19 disclosure of the records is necessary…",
+    "…itrust or anticompetitive law or regulation. 4 (f) Nothing in this compact may be construed to be a waiver of sovereign immunity by the 5 participating states or by the commission. 6 ARTICLE VIII 7 DATA SYSTEM 8 (1) The commissio…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0493",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0493?open_tab=docs#16812071",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:30:47Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:30:47Z",
+     "detail": "Matched direct terms (full text)"
+    },
+    {
+     "ts": "2026-11-17T23:30:46Z",
+     "detail": "HB26 introduced: Dental and dental hygienist compact"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163732",
+   "kind": "bill",
+   "id": "HB25 (LC0498)",
+   "title": "Emergency medical services personnel licensing compact",
+   "who": "Jodee Etchart",
+   "status": "Introduced: (H) Introduced",
+   "tier": "direct",
+   "score": 16,
+   "basis": "full text",
+   "terms": [
+    "consultation",
+    "jurisdiction",
+    "law enforcement",
+    "sovereign"
+   ],
+   "snippets": [
+    "…ternative dispute resolution proceedings. 27 (d) Nothing in this compact shall be construed to be a waiver of sovereign immunity. 28 (2) Membership, voting, and meetings. 70th Legislature 2027 HB 25.1 - 9 - Authorized Print Versi…",
+    "…early 27 unwarranted invasion of personal privacy; 28 (viii) disclosure of investigatory records compiled for law enforcement purposes; 70th Legislature 2027 HB 25.1 - 10 - Authorized Print Version – HB 25 1 (ix) disclosure of informat…",
+    "…ction 50-6-203, MCA, is amended to read: 22 \"50-6-203. Rules. (1) The department of labor and industry, after consultation with the department of 23 public health and human services and other appropriate departments, associations, a…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0498",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0498?open_tab=docs#16809572",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:30:46Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:30:46Z",
+     "detail": "Matched direct terms (full text)"
+    },
+    {
+     "ts": "2026-11-17T23:30:45Z",
+     "detail": "HB25 introduced: Emergency medical services personnel licensing compact"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163733",
+   "kind": "bill",
+   "id": "HB24 (LC0442)",
+   "title": "Revise membership of TMDL advisory group",
+   "who": "Tom Millett",
+   "status": "Introduced: (H) Introduced",
+   "tier": "indirect",
+   "score": 8,
+   "basis": "full text",
+   "terms": [
+    "consultation",
+    "fishing",
+    "mining",
+    "state trust land"
+   ],
+   "snippets": [
+    "…ationists; 16 (v) the forestry industry; 17 (vi) municipalities; 18 (vii) point source dischargers; 19 (viii) mining; 20 (ix) federal land management agencies; 21 (x) state trust land management agencies; 22 (xi) supervisors o…",
+    "… districts for counties west of the continental 25 divide; 26 (xiii) the hydroelectric industry; and 27 (xiv) fishing-related businesses. 28 (b) If the director receives more than one nomination from a particular interest, the …"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0442",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0442?open_tab=docs#16809570",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:30:44Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:30:44Z",
+     "detail": "HB24 introduced: Revise membership of TMDL advisory group"
+    },
+    {
+     "ts": "2026-11-17T23:30:44Z",
+     "detail": "Matched indirect terms (full text)"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163763",
+   "kind": "bill",
+   "id": "HB23 (LC0678)",
+   "title": "Standardize certain legislator compensation laws",
+   "who": "Steve Fitzpatrick",
+   "status": "Introduced: (H) Introduced",
+   "tier": "direct",
+   "score": 36,
+   "basis": "full text",
+   "terms": [
+    "broadband",
+    "consultation",
+    "indian",
+    "school funding",
+    "tribal",
+    "tribe"
+   ],
+   "snippets": [
+    "…l consider the special needs of Montana's hard-to-serve Indian population 2 and the state's relationship with tribal governments when making appointments to the board. 3 (4) The board shall perform the functions described in s…",
+    "…ector of administration. 26 (2) The commission may provide parameters governing the submission and funding of broadband 27 deployment grants as allowed by state and federal law or regulation. 28 (3) The department shall establish…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0678",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0678?open_tab=docs#16812068",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:30:43Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:30:43Z",
+     "detail": "HB23 introduced: Standardize certain legislator compensation laws"
+    },
+    {
+     "ts": "2026-11-17T23:30:43Z",
+     "detail": "Matched direct terms (full text)"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163728",
+   "kind": "bill",
+   "id": "HB22 (LC0676)",
+   "title": "Revise legislator reimbursement laws",
+   "who": "Steve Fitzpatrick",
+   "status": "Introduced: (H) Introduced",
+   "tier": "indirect",
+   "score": 2,
+   "basis": "full text",
+   "terms": [
+    "jurisdiction"
+   ],
+   "snippets": [
+    "…iolation of [section 2] may bring a private cause of 15 action against a manufacturer in a court of competent jurisdiction. 16 (2) A parent or legal guardian bringing an action under subsection (1) may recover: 17 (a) (i) actual dam…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0676",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0676?open_tab=docs#16812066",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:30:42Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:30:42Z",
+     "detail": "HB22 introduced: Revise legislator reimbursement laws"
+    },
+    {
+     "ts": "2026-11-17T23:30:42Z",
+     "detail": "Matched indirect terms (full text)"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163717",
+   "kind": "bill",
+   "id": "HB21 (LC0448)",
+   "title": "Provide additional funding to 9-1-1 accounts",
+   "who": "Shane Klakken",
+   "status": "Introduced: (H) Introduced",
+   "tier": "direct",
+   "score": 10,
+   "basis": "full text",
+   "terms": [
+    "tribal"
+   ],
+   "snippets": [
+    "…allocated as follows: 19 (a) 75% of the account must be deposited in an account for distribution to local and tribal 20 government entities that host public safety answering points in accordance with 10-4-305 and with rules 21…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0448",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0448?open_tab=docs#16812064",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:30:41Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:30:41Z",
+     "detail": "HB21 introduced: Provide additional funding to 9-1-1 accounts"
+    },
+    {
+     "ts": "2026-11-17T23:30:41Z",
+     "detail": "Matched direct terms (full text)"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163731",
+   "kind": "bill",
+   "id": "HB19 (LC0380)",
+   "title": "Study of the water rights permitting process by DNRC",
+   "who": "Bruce Gillespie",
+   "status": "Introduced: (H) Introduced",
+   "tier": "indirect",
+   "score": 4,
+   "basis": "full text",
+   "terms": [
+    "water rights",
+    "water use"
+   ],
+   "snippets": [
+    "Study of the water rights permitting process by DNRC Study of the water rights permitting process by DNRC 70th Legislature 2027 HB 19.1…",
+    "…m other prior-appropriation states that provide 18 flexibility and multiple pathways to meet new and changing water use demands on a changing water supply 19 while also protecting senior water right holders; 20 (c) compile a list…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0380",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0380?open_tab=docs#16812059",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:30:40Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:30:40Z",
+     "detail": "Matched indirect terms (full text)"
+    },
+    {
+     "ts": "2026-11-17T23:30:39Z",
+     "detail": "HB19 introduced: Study of the water rights permitting process by DNRC"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163760",
+   "kind": "bill",
+   "id": "HB18 (LC0377)",
+   "title": "Extend the termination of Water Court for water right adjudication",
+   "who": "Bruce Gillespie",
+   "status": "Introduced: (H) Introduced",
+   "tier": "indirect",
+   "score": 2,
+   "basis": "full text",
+   "terms": [
+    "water right"
+   ],
+   "snippets": [
+    "Extend the termination of Water Court for water right adjudication Extend the termination of Water Court for water right adjudication 70th Legislature 2027 HB 18.1…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0377",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0377?open_tab=docs#16812057",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:30:39Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:30:39Z",
+     "detail": "Matched indirect terms (full text)"
+    },
+    {
+     "ts": "2026-11-17T23:30:38Z",
+     "detail": "HB18 introduced: Extend the termination of Water Court for water right adjudication"
+    }
+   ]
+  },
+  {
+   "key": "bill:2163746",
+   "kind": "bill",
+   "id": "HB16 (LC0382)",
+   "title": "Revise laws related to the Sexual Assault Response Network program and committee",
+   "who": "Steven Kelly",
+   "status": "Introduced: (H) Introduced",
+   "tier": "direct",
+   "score": 16,
+   "basis": "full text",
+   "terms": [
+    "jurisdiction",
+    "law enforcement",
+    "tribal",
+    "wildlife"
+   ],
+   "snippets": [
+    "… part of the ongoing 21 base for the next legislative session. 22 23 NEW SECTION. Section 12. Notification to tribal governments. The secretary of state shall send a 24 copy of [this act] to each federally recognized tribal go…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0382",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0382?open_tab=docs#16809565",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-17T23:30:37Z",
+   "events": [
+    {
+     "ts": "2026-11-17T23:30:37Z",
+     "detail": "Matched direct terms (full text)"
+    },
+    {
+     "ts": "2026-11-17T23:30:36Z",
+     "detail": "HB16 introduced: Revise laws related to the Sexual Assault Response Network program and committee"
+    }
+   ]
+  },
   {
    "key": "bill:2025046",
    "kind": "bill",
@@ -32819,36 +34157,6 @@
    ]
   },
   {
-   "key": "lc:2:LC0494",
-   "kind": "draft",
-   "id": "LC0494",
-   "title": "Generally revise medicaid laws",
-   "who": "Lenz, Dennis",
-   "status": "Draft Died in Process",
-   "tier": "indirect",
-   "score": 2,
-   "basis": "title only",
-   "terms": [
-    "medicaid"
-   ],
-   "snippets": [],
-   "link": "https://bills.legmt.gov/#/lc/bill/2/LC0494",
-   "text_url": null,
-   "text_type": null,
-   "hearings": [],
-   "updated": "2026-11-12T21:38:25Z",
-   "events": [
-    {
-     "ts": "2026-11-12T21:38:25Z",
-     "detail": "New draft request: Generally revise medicaid laws"
-    },
-    {
-     "ts": "2026-11-12T21:38:25Z",
-     "detail": "Matched indirect terms (title only)"
-    }
-   ]
-  },
-  {
    "key": "lc:2:LC0495",
    "kind": "draft",
    "id": "LC0495",
@@ -32871,36 +34179,6 @@
     {
      "ts": "2026-11-12T21:38:25Z",
      "detail": "New draft request: General revise child protective service laws"
-    },
-    {
-     "ts": "2026-11-12T21:38:25Z",
-     "detail": "Matched indirect terms (title only)"
-    }
-   ]
-  },
-  {
-   "key": "lc:2:LC0497",
-   "kind": "draft",
-   "id": "LC0497",
-   "title": "Generally revise medicaid law",
-   "who": "Lenz, Dennis",
-   "status": "Draft Died in Process",
-   "tier": "indirect",
-   "score": 2,
-   "basis": "title only",
-   "terms": [
-    "medicaid"
-   ],
-   "snippets": [],
-   "link": "https://bills.legmt.gov/#/lc/bill/2/LC0497",
-   "text_url": null,
-   "text_type": null,
-   "hearings": [],
-   "updated": "2026-11-12T21:38:25Z",
-   "events": [
-    {
-     "ts": "2026-11-12T21:38:25Z",
-     "detail": "New draft request: Generally revise medicaid law"
     },
     {
      "ts": "2026-11-12T21:38:25Z",
@@ -38370,36 +39648,6 @@
    ]
   },
   {
-   "key": "lc:3:LC0346",
-   "kind": "draft",
-   "id": "LC0346",
-   "title": "Revise FWP authority for instream flows",
-   "who": "Galt, Wylie",
-   "status": "Draft Ready for Delivery",
-   "tier": "indirect",
-   "score": 2,
-   "basis": "title only",
-   "terms": [
-    "instream flows"
-   ],
-   "snippets": [],
-   "link": "https://bills.legmt.gov/#/lc/bill/3/LC0346",
-   "text_url": null,
-   "text_type": null,
-   "hearings": [],
-   "updated": "2026-11-08T05:43:37Z",
-   "events": [
-    {
-     "ts": "2026-11-08T05:43:37Z",
-     "detail": "New draft request: Revise FWP authority for instream flows"
-    },
-    {
-     "ts": "2026-11-08T05:43:37Z",
-     "detail": "Matched indirect terms (title only)"
-    }
-   ]
-  },
-  {
    "key": "lc:3:LC0356",
    "kind": "draft",
    "id": "LC0356",
@@ -38422,126 +39670,6 @@
     {
      "ts": "2026-11-08T05:43:37Z",
      "detail": "New draft request: Generally revise coal mining laws"
-    },
-    {
-     "ts": "2026-11-08T05:43:37Z",
-     "detail": "Matched indirect terms (title only)"
-    }
-   ]
-  },
-  {
-   "key": "lc:3:LC0377",
-   "kind": "draft",
-   "id": "LC0377",
-   "title": "Extend the termination of Water Court for water right adjudication",
-   "who": "Water Policy Interim Committee",
-   "status": "Draft Ready for Delivery",
-   "tier": "indirect",
-   "score": 2,
-   "basis": "title only",
-   "terms": [
-    "water right"
-   ],
-   "snippets": [],
-   "link": "https://bills.legmt.gov/#/lc/bill/3/LC0377",
-   "text_url": null,
-   "text_type": null,
-   "hearings": [],
-   "updated": "2026-11-08T05:43:37Z",
-   "events": [
-    {
-     "ts": "2026-11-08T05:43:37Z",
-     "detail": "New draft request: Extend the termination of Water Court for water right adjudication"
-    },
-    {
-     "ts": "2026-11-08T05:43:37Z",
-     "detail": "Matched indirect terms (title only)"
-    }
-   ]
-  },
-  {
-   "key": "lc:3:LC0378",
-   "kind": "draft",
-   "id": "LC0378",
-   "title": "Allow water rights to certain subdivisions",
-   "who": "Water Policy Interim Committee",
-   "status": "Draft Ready for Delivery",
-   "tier": "indirect",
-   "score": 2,
-   "basis": "title only",
-   "terms": [
-    "water rights"
-   ],
-   "snippets": [],
-   "link": "https://bills.legmt.gov/#/lc/bill/3/LC0378",
-   "text_url": null,
-   "text_type": null,
-   "hearings": [],
-   "updated": "2026-11-08T05:43:37Z",
-   "events": [
-    {
-     "ts": "2026-11-08T05:43:37Z",
-     "detail": "New draft request: Allow water rights to certain subdivisions"
-    },
-    {
-     "ts": "2026-11-08T05:43:37Z",
-     "detail": "Matched indirect terms (title only)"
-    }
-   ]
-  },
-  {
-   "key": "lc:3:LC0380",
-   "kind": "draft",
-   "id": "LC0380",
-   "title": "Study of the water rights permitting process by DNRC",
-   "who": "Water Policy Interim Committee",
-   "status": "Draft Ready for Delivery",
-   "tier": "indirect",
-   "score": 2,
-   "basis": "title only",
-   "terms": [
-    "water rights"
-   ],
-   "snippets": [],
-   "link": "https://bills.legmt.gov/#/lc/bill/3/LC0380",
-   "text_url": null,
-   "text_type": null,
-   "hearings": [],
-   "updated": "2026-11-08T05:43:37Z",
-   "events": [
-    {
-     "ts": "2026-11-08T05:43:37Z",
-     "detail": "New draft request: Study of the water rights permitting process by DNRC"
-    },
-    {
-     "ts": "2026-11-08T05:43:37Z",
-     "detail": "Matched indirect terms (title only)"
-    }
-   ]
-  },
-  {
-   "key": "lc:3:LC0394",
-   "kind": "draft",
-   "id": "LC0394",
-   "title": "Revise the process for death notifications for updating the statewide voter registration list",
-   "who": "State Administration and Veterans' Affairs Interim Committee",
-   "status": "Draft Ready for Delivery",
-   "tier": "indirect",
-   "score": 2,
-   "basis": "title only",
-   "terms": [
-    "voter registration"
-   ],
-   "snippets": [],
-   "link": "https://bills.legmt.gov/#/lc/bill/3/LC0394",
-   "text_url": null,
-   "text_type": null,
-   "hearings": [],
-   "updated": "2026-11-08T05:43:37Z",
-   "events": [
-    {
-     "ts": "2026-11-08T05:43:37Z",
-     "detail": "New draft request: Revise the process for death notifications for updating the statewide voter registration list"
     },
     {
      "ts": "2026-11-08T05:43:37Z",

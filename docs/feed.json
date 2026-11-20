@@ -1,7 +1,41 @@
 {
- "generated": "2026-11-19T23:03:44Z",
- "count": 1220,
+ "generated": "2026-11-20T07:16:16Z",
+ "count": 1221,
  "items": [
+  {
+   "key": "bill:2164215",
+   "kind": "bill",
+   "id": "SJ2 (LC0239)",
+   "title": "Resolution for Article V of US Constitution convention of states",
+   "who": "Tom McGillvray",
+   "status": "Introduced: (S) Introduced",
+   "tier": "direct",
+   "score": 12,
+   "basis": "full text",
+   "terms": [
+    "jurisdiction",
+    "tribal"
+   ],
+   "snippets": [
+    "…formation from other state agencies, including the department of public health and 14 human services, or from tribal governments or the federal government that may be included in the criminal 15 justice data warehouse or that …",
+    "…titution of the United States that impose fiscal restraints on the federal government, 25 limit the power and jurisdiction of the federal government, and limit the terms of office for its officials and for 26 members of Congress. 27…"
+   ],
+   "link": "https://bills.legmt.gov/#/laws/bill/3/LC0239",
+   "text_url": "https://bills.legmt.gov/#/laws/bill/3/LC0239?open_tab=docs#16827100",
+   "text_type": "Introduced",
+   "hearings": [],
+   "updated": "2026-11-20T07:16:11Z",
+   "events": [
+    {
+     "ts": "2026-11-20T07:16:11Z",
+     "detail": "Matched direct terms (full text)"
+    },
+    {
+     "ts": "2026-11-20T07:16:10Z",
+     "detail": "SJ2 introduced: Resolution for Article V of US Constitution convention of states"
+    }
+   ]
+  },
   {
    "key": "bill:2163715",
    "kind": "bill",

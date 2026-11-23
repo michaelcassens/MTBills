@@ -237,8 +237,8 @@ pathways:
 # The URL and anon key are safe to publish: database rules decide who can write.
 # ---------------------------------------------------------------------------
 review:
-  supabase_url: null        # e.g. https://abcdefgh.supabase.co
-  supabase_anon_key: null
+  supabase_url: https://tpwpggfvyetmkqqrnlwp.supabase.co        # e.g. https://abcdefgh.supabase.co
+  supabase_anon_key: sb_publishable_tadoWH-2iHABjY9hF7v2XA_tkWnUpa_
 
 # Email digest (optional). Leave enabled: false to just write files.
 email:

@@ -543,7 +543,10 @@ def pull_reviews(cfg):
     if not rc.get("supabase_url") or not rc.get("supabase_anon_key"):
         return
     db = connect(cfg)
-    hdr = {"apikey": rc["supabase_anon_key"], "Authorization": f"Bearer {rc['supabase_anon_key']}"}
+    key = rc["supabase_anon_key"]
+    hdr = {"apikey": key}
+    if not key.startswith("sb_"):  # legacy anon keys are JWTs and also go in Authorization
+        hdr["Authorization"] = f"Bearer {key}"
     try:
         r = requests.get(rc["supabase_url"].rstrip("/") + "/rest/v1/reviews?select=*", headers=hdr, timeout=60)
         r.raise_for_status()

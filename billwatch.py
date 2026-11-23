@@ -7,7 +7,7 @@ a feed for the Bill Watch app plus push/email alerts.
 Usage
   python billwatch.py init
   python billwatch.py sync                 # pull drafts, text, versions, fiscal notes from Bill Explorer
-  python billwatch.py backfill --session 2 # load the 2025 session for retrospective AIGPI review
+  python billwatch.py backfill --year 2023 # load a past session (1999 on) for retrospective AIGPI review
   python billwatch.py ingest-csv FILE.csv  # fallback if Bill Explorer blocks automated access
   python billwatch.py reviews              # pull AIGPI review decisions from Supabase
   python billwatch.py screen               # re-score everything after editing config.yaml
@@ -39,7 +39,11 @@ from analysis import Analyzer, compare_fiscal, compare_versions
 from legmt import LegMT, LegMTError, pdf_to_text, version_name
 
 HERE = Path(__file__).resolve().parent
-SESSION_LABELS = {"1": "2023", "2": "2025", "3": "2027", "4": "2029"}
+SESSION_LABELS = {"2": "2025", "3": "2027"}  # fallback; real labels are saved at sync time
+
+
+def session_label(db, sid):
+    return meta_get(db, f"label:{sid}") or SESSION_LABELS.get(str(sid)) or str(sid)
 
 
 # --------------------------------------------------------------------------- setup
@@ -326,8 +330,12 @@ def legmt_sync(cfg, session_id=None, api=None, quiet=False, text_for="changed", 
     sid = str(session_id or cfg["legmt"].get("current_session_id", 3))
     first = meta_get(db, f"legmt_synced:{sid}") is None
     likely = {s.lower() for s in cfg.get("text_likely_statuses", [])}
+    try:
+        meta_set(db, f"label:{sid}", api.session_label(sid))
+    except Exception:  # noqa: BLE001 - a label is cosmetic
+        pass
     raws = api.all_items(sid)
-    print(f"Bill Explorer: {len(raws)} drafts and bills in session {SESSION_LABELS.get(sid, sid)}")
+    print(f"Bill Explorer: {len(raws)} drafts and bills in the {session_label(db, sid)} session")
     todo = []
     for raw in raws:
         n = api.normalize(raw)
@@ -375,17 +383,58 @@ def legmt_sync(cfg, session_id=None, api=None, quiet=False, text_for="changed", 
     db.commit()
 
 
-def backfill(cfg, session_id, api=None, limit=None):
-    """Load a past session for retrospective review: latest text of every introduced bill,
-    then the full version history (and amendment diffs) for bills with tribal interests."""
+def fetch_latest_version(cfg, db, api, key):
+    """Only the final text of a bill (enrolled if it passed): one PDF instead of the whole history."""
+    it = db.execute("SELECT * FROM items WHERE key=?", (key,)).fetchone()
+    vers = api.bill_versions(it["session_id"], it["bill_type"], it["bill_no"])
+    if vers:
+        store_doc(cfg, db, api, key, "version", vers[-1], version_name(vers[-1]["version"]))
+    db.execute("UPDATE items SET text_checked='latest-only' WHERE key=?", (key,))
+
+
+def backfill(cfg, session_id=None, year=None, api=None, limit=None):
+    """Load a past session for retrospective review, in two passes that can resume where they stopped:
+    1. the final text of every introduced bill, screened;
+    2. for bills with tribal interests, every version, fiscal note, and amendment, so the review
+       shows where consultation language was added or removed during the session.
+    Text of bills with no tribal signal is not kept, to keep the database small."""
     api = api or LegMT(cfg)
-    legmt_sync(cfg, session_id, api=api, quiet=True, text_for="none")
+    if year and not session_id:
+        session_id = api.session_for_year(year)
+        if not session_id:
+            sys.exit(f"No Montana legislative session found for {year}. Regular sessions are in odd years.")
+    sid = str(session_id)
+    legmt_sync(cfg, sid, api=api, quiet=True, text_for="none")
     db, an = connect(cfg), Analyzer(cfg)
-    bills = [r["key"] for r in db.execute(
-        "SELECT key FROM items WHERE session_id=? AND bill_number IS NOT NULL AND text_checked IS NULL",
-        (str(session_id),))][: limit or None]
-    print(f"Backfill: fetching text for {len(bills)} introduced bills (this can take a while)")
-    for i, key in enumerate(bills, 1):
+    label = session_label(db, sid)
+    budget = limit or cfg["legmt"].get("max_backfill_per_run", 1500)
+
+    first = [r["key"] for r in db.execute(
+        "SELECT key FROM items WHERE session_id=? AND bill_number IS NOT NULL AND text_checked IS NULL "
+        "ORDER BY bill_type, bill_no", (sid,))][:budget]
+    print(f"Backfill {label}, pass 1: final text of {len(first)} bills")
+    for i, key in enumerate(first, 1):
+        try:
+            fetch_latest_version(cfg, db, api, key)
+        except LegMTError:
+            raise
+        except Exception as e:  # noqa: BLE001
+            print(f"  ! {key}: {e}")
+        r = screen_item(db, an, key)
+        if r and r["tribal"] == "none":
+            db.execute("UPDATE docs SET text=? WHERE key=?", (b"", key))
+        if i % 50 == 0:
+            db.commit()
+            print(f"  …{i}/{len(first)}")
+    db.commit()
+    budget -= len(first)
+
+    flagged = [r["key"] for r in db.execute(
+        """SELECT i.key FROM items i JOIN analysis a ON a.key=i.key WHERE i.session_id=?
+           AND i.text_checked='latest-only' AND a.tribal != 'none'""", (sid,))][:max(budget, 0)]
+    print(f"Backfill {label}, pass 2: full history of {len(flagged)} bills with tribal interests")
+    for i, key in enumerate(flagged, 1):
+        db.execute("DELETE FROM docs WHERE key=?", (key,))  # rebuild in date order so diffs run forward
         try:
             fetch_documents(cfg, db, api, an, key)
         except LegMTError:
@@ -395,13 +444,16 @@ def backfill(cfg, session_id, api=None, limit=None):
         screen_item(db, an, key)
         if i % 25 == 0:
             db.commit()
-            print(f"  …{i}/{len(bills)}")
-    db.execute("UPDATE events SET digested='baseline' WHERE digested IS NULL AND item_key LIKE ?",
-               (f"lc:{session_id}:%",))
+            print(f"  …{i}/{len(flagged)}")
+    db.execute("UPDATE events SET digested='baseline' WHERE digested IS NULL AND item_key LIKE ?", (f"lc:{sid}:%",))
     db.commit()
+    left = db.execute("""SELECT COUNT(*) FROM items i LEFT JOIN analysis a ON a.key=i.key WHERE i.session_id=?
+                         AND i.bill_number IS NOT NULL AND (i.text_checked IS NULL OR
+                         (i.text_checked='latest-only' AND a.tribal != 'none'))""", (sid,)).fetchone()[0]
     n = db.execute("SELECT COUNT(*) FROM analysis a JOIN items i ON i.key=a.key "
-                   "WHERE i.session_id=? AND a.tribal!='none'", (str(session_id),)).fetchone()[0]
-    print(f"Backfill done: {n} items with tribal interests are now in the review queue")
+                   "WHERE i.session_id=? AND a.tribal!='none'", (sid,)).fetchone()[0]
+    print(f"Backfill {label}: {n} items with tribal interests are in the review queue."
+          + (f" {left} bills still to do; run the backfill again to continue." if left else " Complete."))
 
 
 # --------------------------------------------------------------------------- CSV fallback
@@ -583,11 +635,11 @@ def export_feed(cfg):
     (site / "config.js").write_text(
         "window.BILLWATCH = " + json.dumps({
             "supabaseUrl": rc.get("supabase_url"), "supabaseAnonKey": rc.get("supabase_anon_key"),
-            "currentSession": str(cfg["legmt"].get("current_session_id", 3)),
-            "sessionLabels": SESSION_LABELS}) + ";\n", encoding="utf-8")
+            "currentSession": str(cfg["legmt"].get("current_session_id", 3))}) + ";\n", encoding="utf-8")
     sessions = []
-    for s in db.execute("SELECT DISTINCT session_id FROM items ORDER BY session_id DESC").fetchall():
-        sid = s["session_id"]
+    sids = [r["session_id"] for r in db.execute("SELECT DISTINCT session_id FROM items")]
+    years = {sid: session_label(db, sid) for sid in sids}
+    for sid in sorted(sids, key=lambda x: years[x], reverse=True):
         keys = db.execute("""SELECT i.key, a.tribal, a.tags FROM items i LEFT JOIN analysis a ON a.key=i.key
                              LEFT JOIN reviews r ON r.key=i.key WHERE i.session_id=? AND
                              (a.tribal != 'none' OR (a.tags IS NOT NULL AND a.tags != '[]') OR r.key IS NOT NULL)""",
@@ -595,11 +647,12 @@ def export_feed(cfg):
         items = [item_record(db, k["key"], full=(k["tribal"] != "none")) for k in keys]
         items.sort(key=lambda x: x["updated"] or "", reverse=True)
         total = db.execute("SELECT COUNT(*) FROM items WHERE session_id=?", (sid,)).fetchone()[0]
-        fname = f"feed-{SESSION_LABELS.get(sid, sid)}.json"
-        feed = {"generated": now(), "session": sid, "label": SESSION_LABELS.get(sid, sid),
+        fname = f"feed-{years[sid].replace(' ', '-')}.json"
+        feed = {"generated": now(), "session": sid, "label": years[sid],
                 "total_tracked": total, "count": len(items), "items": items}
         (site / fname).write_text(json.dumps(feed, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-        sessions.append({"id": sid, "label": SESSION_LABELS.get(sid, sid), "file": fname, "count": len(items)})
+        sessions.append({"id": sid, "label": years[sid], "file": fname, "count": len(items),
+                         "flagged": sum(1 for i in items if i["tribal"] != "none")})
         print(f"Feed: {fname} ({len(items)} of {total} items)")
     cur = str(cfg["legmt"].get("current_session_id", 3))
     (site / "sessions.json").write_text(json.dumps({"generated": now(), "current": cur, "sessions": sessions}),
@@ -770,7 +823,7 @@ def report(cfg, out):
         for k in keys:
             d = item_record(db, k)
             rv = d["review"] or {}
-            w.writerow([SESSION_LABELS.get(d["session"], d["session"]), d["id"], d["title"], d["tribal"],
+            w.writerow([session_label(db, d["session"]), d["id"], d["title"], d["tribal"],
                         d["consultation"], "yes" if d["gap"] else "", "; ".join(d["tags"]),
                         "; ".join(f"{s['type']}: {', '.join(s['detail'])}" for s in d["signals"]),
                         d["requester"], d["by_request_of"], d["sponsor"], d["status"],
@@ -833,7 +886,9 @@ def main():
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("init")
     p = sub.add_parser("sync"); p.add_argument("--session"); p.add_argument("--max-text", type=int)
-    p = sub.add_parser("backfill"); p.add_argument("--session", default="2"); p.add_argument("--limit", type=int)
+    p = sub.add_parser("backfill"); p.add_argument("--year", help="e.g. 2025, 2023, 2021 ... back to 1999")
+    p.add_argument("--session", help="session id instead of a year (e.g. 20172 for the 2017 special)")
+    p.add_argument("--limit", type=int, help="most bills to fetch this run (default 1500)")
     p = sub.add_parser("ingest-csv"); p.add_argument("files", nargs="+")
     p.add_argument("--no-alerts", action="store_true")
     sub.add_parser("reviews")
@@ -852,7 +907,9 @@ def main():
         elif a.cmd == "sync":
             legmt_sync(cfg, a.session, max_text=a.max_text)
         elif a.cmd == "backfill":
-            backfill(cfg, a.session, limit=a.limit)
+            if not (a.year or a.session):
+                sys.exit("Say which session: backfill --year 2023")
+            backfill(cfg, a.session, year=a.year, limit=a.limit)
         elif a.cmd == "ingest-csv":
             for f in a.files:
                 ingest_csv(cfg, f)

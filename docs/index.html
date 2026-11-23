@@ -122,7 +122,7 @@ blockquote .k{display:block;font-size:.8rem;color:var(--muted)}
 
   <div class="controls" role="search" aria-label="Filter the list">
     <div class="row">
-      <div class="seg" id="sessions" aria-label="Session"></div>
+      <label><span class="sr">Legislative session</span><select id="session"></select></label>
       <label><span class="sr">Pathways area</span>
         <select id="tag"><option value="">All Pathways areas</option></select></label>
       <label class="search"><span class="sr">Search by number, title, requester, or term</span>
@@ -285,22 +285,30 @@ function itemHTML(i){
     <div class="body">${body}</div></details></li>`;
 }
 
+// Pathways and search apply to every view, so the counts on the view buttons match what you'll see.
+function matchesFilters(i){
+  const q = state.q.toLowerCase().trim();
+  return (!state.tag || (i.tags||[]).includes(state.tag)) &&
+    (!q || [i.id,i.title,i.requester,i.by_request_of,i.sponsor,(i.tags||[]).join(" "),
+            (i.signals||[]).map(s=>s.detail.join(" ")).join(" ")].join(" ").toLowerCase().includes(q));
+}
 function filtered(){
   const f = state.feed; if(!f) return [];
   const view = VIEWS.find(v=>v.id===state.view) || VIEWS[0];
-  const q = state.q.toLowerCase().trim();
-  return f.items.filter(i => view.test(i) &&
-    (!state.tag || (i.tags||[]).includes(state.tag)) &&
-    (!q || [i.id,i.title,i.requester,i.by_request_of,i.sponsor,(i.tags||[]).join(" "),
-            (i.signals||[]).map(s=>s.detail.join(" ")).join(" ")].join(" ").toLowerCase().includes(q)));
+  return f.items.filter(i => view.test(i) && matchesFilters(i));
+}
+function renderViews(){
+  const f = state.feed; if(!f) return;
+  const base = f.items.filter(matchesFilters);
+  document.getElementById("views").innerHTML = VIEWS.filter(v=>!v.reviewer||state.reviewer)
+    .map(v=>`<button type="button" data-view="${v.id}" aria-pressed="${v.id===state.view}">${esc(v.label)} (${base.filter(v.test).length})</button>`).join("");
+  document.getElementById("view-note").textContent = (VIEWS.find(v=>v.id===state.view)||VIEWS[0]).note
+    + (state.tag || state.q ? " Counts include your Pathways and search filters." : "");
 }
 
 function render(){
   const f = state.feed; if(!f) return;
-  const view = VIEWS.find(v=>v.id===state.view);
-  document.getElementById("views").innerHTML = VIEWS.filter(v=>!v.reviewer||state.reviewer)
-    .map(v=>`<button type="button" data-view="${v.id}" aria-pressed="${v.id===state.view}">${esc(v.label)} (${f.items.filter(v.test).length})</button>`).join("");
-  document.getElementById("view-note").textContent = view.note;
+  renderViews();
   const tags = [...new Set(f.items.flatMap(i=>i.tags||[]))].sort();
   const sel = document.getElementById("tag");
   sel.innerHTML = `<option value="">All Pathways areas</option>` + tags.map(t=>`<option ${t===state.tag?"selected":""}>${esc(t)}</option>`).join("");
@@ -321,9 +329,9 @@ function render(){
 }
 
 function renderSessions(){
-  const box = document.getElementById("sessions");
-  box.hidden = state.sessions.length < 2;
-  box.innerHTML = state.sessions.map(s=>`<button type="button" data-session="${esc(s.id)}" aria-pressed="${s.id===state.session}">${esc(s.label)} session</button>`).join("");
+  const sel = document.getElementById("session");
+  sel.parentElement.hidden = state.sessions.length < 2;
+  sel.innerHTML = state.sessions.map(s=>`<option value="${esc(s.id)}" ${s.id===state.session?"selected":""}>${esc(s.label)} session (${s.flagged ?? s.count} flagged)</option>`).join("");
 }
 
 /* ---------- data ---------- */
@@ -339,6 +347,7 @@ async function load(){
     const s = await (await fetch("sessions.json?t="+Date.now(), {cache:"no-store"})).json();
     state.sessions = s.sessions;
     if (!state.session) state.session = store.get("bw-session") || s.current;
+    if (!state.sessions.find(x=>x.id===state.session)) state.session = s.current;
     if (!state.sessions.find(x=>x.id===state.session)) state.session = (state.sessions[0]||{}).id;
     renderSessions();
     const meta = state.sessions.find(x=>x.id===state.session);
@@ -401,6 +410,7 @@ async function saveReview(form){
   }
   state.reviews[key] = data[0];
   msg.className = "msg saved"; msg.textContent = "Review saved";
+  renderViews();
   loadNotes(form);
   const sum = form.closest("details").querySelector(".top");
   const badge = sum.querySelector(".rv"); const tmp = document.createElement("span");
@@ -410,7 +420,6 @@ async function saveReview(form){
 /* ---------- events ---------- */
 document.addEventListener("click", e => {
   const v = e.target.closest("[data-view]"); if (v) { state.view = v.dataset.view; state.shown = 60; render(); return; }
-  const s = e.target.closest("[data-session]"); if (s) { state.session = s.dataset.session; store.set("bw-session", s.dataset.session); state.shown = 60; load(); return; }
   if (e.target.id==="signout") { state.sb.auth.signOut().then(checkUser); }
 });
 document.addEventListener("submit", async e => {
@@ -425,6 +434,8 @@ document.addEventListener("toggle", e => {
   const d = e.target; if (!(d instanceof HTMLDetailsElement) || !d.open) return;
   const form = d.querySelector("form.review"); if (form) loadNotes(form);
 }, true);
+document.getElementById("session").addEventListener("change", e => {
+  state.session = e.target.value; store.set("bw-session", state.session); state.shown = 60; state.tag = ""; load(); });
 document.getElementById("tag").addEventListener("change", e => { state.tag = e.target.value; state.shown = 60; render(); });
 document.getElementById("q").addEventListener("input", e => { state.q = e.target.value; state.shown = 60; render(); });
 document.getElementById("refresh").addEventListener("click", load);

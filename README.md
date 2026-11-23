@@ -20,7 +20,7 @@ Screens every Montana LC draft and bill for **tribal interests** and **tribal co
 
 **AIGPI review.** Reviewers sign in on the app with an email link, then mark each item *confirmed*, *not implicated*, or *not yet reviewed*, and record whether the text has a consultation provision (yes, partial, no). Confirmed items get the **AIGPI tracking** flag. Items amended after review show *Amended since AIGPI review* and return to the queue. Public notes show to everyone; internal notes are reviewers only. Every change is logged.
 
-**Publishes** everything to the app (public, per your choice): views for Needs attention, Tribal interests, AIGPI tracking, Review queue (reviewers only), and All Pathways, plus a 2027/2025 session switch, Pathways filter, and search.
+**Publishes** everything to the app (public, per your choice): views for Needs attention, Tribal interests, AIGPI tracking, Review queue (reviewers only), and All Pathways, plus a session picker (2027 and any past years you load), Pathways filter, and search. The numbers on the view buttons count what that view would show with your current Pathways and search filters.
 
 ## Setup
 
@@ -31,8 +31,10 @@ Screens every Montana LC draft and bill for **tribal interests** and **tribal co
 4. **Settings → Secrets and variables → Actions:** add `BILLWATCH_NTFY_TOPIC` (a long random name) for push alerts. `LEGISCAN_API_KEY` is optional now.
 5. **Actions → Bill Watch → Run workflow → run.** The first run loads all current drafts as a baseline (no alert flood) and fetches posted text, up to 600 items per run; the rest come in on the next runs.
 
-### 2. 2025 retrospective
-**Actions → Bill Watch → Run workflow → backfill-2025.** It reads the text of every 2025 bill, then the full version history of those with tribal interests, so you can see where consultation language was added or stripped. Expect an hour or more. The results appear under **2025 session** in the app and in the review queue.
+### 2. Past sessions (1999 to 2025)
+**Actions → Bill Watch → Run workflow**, choose **backfill**, and type the year (any regular session: 2025, 2023, 2021 ... 1999). It reads the final text of every bill that year, then the full version history of those with tribal interests, so you can see where consultation language was added or stripped. Each year shows up in the app's session picker and in the review queue.
+
+A year can take an hour or two. Each run handles up to 1,500 bills; if the log ends with "bills still to do," run the same year again and it picks up where it stopped. To keep the database small, text is kept only for bills with tribal interests. Sessions before 2025 come from the Legislature's archive, so requester names there are as the archive lists them. Special sessions: `python billwatch.py backfill --session 20172` (2017 special).
 
 ### 3. AIGPI review (Supabase, free tier)
 1. Create a project at supabase.com.
@@ -53,7 +55,7 @@ python billwatch.py sync            # pull 2027 drafts and text
 python billwatch.py serve           # open the app at http://localhost:8000
 python billwatch.py report          # every flagged item to a CSV for Excel
 ```
-Other commands: `backfill --session 2`, `ingest-csv FILE.csv`, `reviews`, `screen`, `digest`, `feed`, `run`.
+Other commands: `backfill --year 2023`, `ingest-csv FILE.csv`, `reviews`, `screen`, `digest`, `feed`, `run`.
 
 ## Tuning
 Edit term lists in `config.yaml` and commit; the workflow re-scores everything. The MCA list under `amended_law_areas` is a starter set for AIGPI to verify and extend. Err toward catching too much: a missed bill costs more than an extra item in the queue.

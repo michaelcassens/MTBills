@@ -69,9 +69,39 @@ class LegMT:
             self._sessions = {s["id"]: s for s in self.get_json("/legislators/v1/sessions")}
         return self._sessions
 
+    def archive_sessions(self):
+        """Sessions before Bill Explorer (1999-2023), keyed by their 5-digit id, e.g. 20231."""
+        if not hasattr(self, "_archive"):
+            self._archive = {str(s["sessionId"]): s for s in self.get_json("/archive/v1/sessions")}
+        return self._archive
+
+    @staticmethod
+    def is_archive(session_id):
+        return len(str(session_id)) == 5
+
     def ordinals(self, session_id):
+        if self.is_archive(session_id):
+            a = self.archive_sessions()[str(session_id)]
+            return str(a["ordinal"]), str(a["sessionId"])
         s = self.sessions()[int(session_id)]
         return s["legislature"]["ordinals"], s["ordinals"]  # e.g. ("70", "20271")
+
+    def session_label(self, session_id):
+        if self.is_archive(session_id):
+            a = self.archive_sessions().get(str(session_id), {})
+            return f"{a.get('sessionYear', session_id)}" + (" special" if a.get("sessionTypeCode") == "S" else "")
+        s = self.sessions().get(int(session_id), {})
+        return (s.get("startDate") or "")[:4] + (" special" if s.get("type") == "SPECIAL" else "")
+
+    def session_for_year(self, year, special=False):
+        """Find the session id for a year: Bill Explorer ids for 2025 on, archive ids before."""
+        for sid, s in self.sessions().items():
+            if (s.get("startDate") or "")[:4] == str(year) and (s.get("type") == "SPECIAL") == special:
+                return str(sid)
+        for sid, a in self.archive_sessions().items():
+            if str(a.get("sessionYear")) == str(year) and (a.get("sessionTypeCode") == "S") == special:
+                return sid
+        return None
 
     def _lookup(self, key, loader):
         if key not in self._cache:
@@ -115,11 +145,54 @@ class LegMT:
 
     # ---------------------------------------------------------------- bills and drafts
     def all_items(self, session_id):
-        """Every draft request and bill in a session (one call; ~2,000 rows)."""
+        """Every draft request and bill in a session."""
+        if self.is_archive(session_id):
+            out, page = [], 0
+            while True:  # archive records are large, so page through them (offset = page number)
+                j = self.post_json("/archive/v1/bills/search", {"sessionId": int(session_id)}, limit=500, offset=page)
+                b = j.get("bills", {})
+                out += b.get("content", [])
+                page += 1
+                if not b.get("content") or len(out) >= b.get("totalElements", 0):
+                    return out
         j = self.post_json("/bills/v1/bills/filter", [{"sessionIds": [int(session_id)]}], limit=10000, offset=0)
         return j.get("content", j)
 
     def normalize(self, raw):
+        if "billSortNumber" in raw or ("id" in raw and isinstance(raw["id"], dict)):
+            return self.normalize_archive(raw)
+        return self.normalize_current(raw)
+
+    @staticmethod
+    def _entity(role):
+        e = role.get("lawEntity") or {}
+        if role.get("legislator") or e.get("firstName"):
+            return f"{e.get('lastName', '')}, {e.get('firstName', '')}".strip(", ")
+        return e.get("lastName") or ""
+
+    def normalize_archive(self, raw):
+        acts = sorted(raw.get("billActions") or [], key=lambda a: a.get("date") or "")
+        last = acts[-1] if acts else {}
+        bt, no = raw.get("billType"), raw.get("billNumber")
+        reqs = raw.get("requesters") or []
+        return {
+            "be_id": None, "session_id": (raw.get("id") or {}).get("sessionId"),
+            "lc": (raw.get("id") or {}).get("billDraftNumber"), "title": raw.get("shortTitle") or "",
+            "bill_number": f"{bt} {no}" if bt and no else None, "bill_type": bt if no else None, "bill_no": no,
+            "requester": "; ".join(self._entity(r) for r in reqs),
+            "requester_type": "LEGISLATOR" if any(r.get("legislator") for r in reqs) else "ORGANIZATION",
+            "by_request_of": "; ".join(self._entity(r) for r in raw.get("requestOf") or []),
+            "sponsor": "; ".join(self._entity(r) for r in raw.get("primarySponsorBillRoles") or []),
+            "subjects": [((s.get("subject") or {}).get("description")) for s in raw.get("subjects") or []
+                         if (s.get("subject") or {}).get("description")],
+            "status": re.sub(r"^\((LC|H|S|C)\)\s*", "", ((last.get("actionType") or {}).get("description") or "")),
+            "status_date": (last.get("date") or "")[:10],
+            "fiscal_note_expected": bool(raw.get("hasFiscalNote")),
+            "history": [{"date": (a.get("date") or "")[:10],
+                         "status": (a.get("actionType") or {}).get("description")} for a in acts][-15:],
+        }
+
+    def normalize_current(self, raw):
         """Flatten one Bill Explorer record into the fields Bill Watch stores."""
         d = raw.get("draft") or {}
         sts = sorted(d.get("billStatuses") or [], key=lambda s: s.get("timeStamp") or "")
@@ -146,6 +219,8 @@ class LegMT:
 
     @staticmethod
     def explorer_url(session_id, lc, introduced):
+        if len(str(session_id)) == 5:  # archived session (2023 and earlier)
+            return f"{BILL_EXPLORER}/bill/{session_id}/{lc}"
         return f"{BILL_EXPLORER}/{'laws' if introduced else 'lc'}/bill/{session_id}/{lc}"
 
     # ---------------------------------------------------------------- documents
@@ -179,7 +254,7 @@ class LegMT:
         return r.content
 
 
-VERSION_RE = re.compile(r"_(\w+?)(?:\(\d+\))?\.pdf$", re.I)
+VERSION_RE = re.compile(r"_(\w+?)(?:\(\d+\))?\.pdf$", re.I)  # HB0021_x.pdf in older sessions
 
 
 def version_label(fname):

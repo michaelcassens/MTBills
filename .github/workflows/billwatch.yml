@@ -11,8 +11,12 @@ on:
         default: run
         options:
           - run                    # normal update: drafts, text, reviews, alerts, app feed
-          - backfill-2025          # one-time: load the 2025 session for retrospective review
+          - backfill               # load a past session (set the year below) for retrospective review
           - rescreen               # re-score everything after editing config.yaml
+      year:
+        description: "Year to backfill (odd years, 1999 to 2025)"
+        type: string
+        default: "2025"
   push:
     paths: ["data/inbox/**", "config.yaml"]
 
@@ -42,10 +46,11 @@ jobs:
           BILLWATCH_NTFY_TOKEN: ${{ secrets.BILLWATCH_NTFY_TOKEN }}
           BILLWATCH_SMTP_PASSWORD: ${{ secrets.BILLWATCH_SMTP_PASSWORD }}
           TASK: ${{ github.event.inputs.task || 'run' }}
+          YEAR: ${{ github.event.inputs.year || '2025' }}
           EVENT: ${{ github.event_name }}
         run: |
-          if [ "$TASK" = "backfill-2025" ]; then
-            python billwatch.py backfill --session 2 && python billwatch.py feed
+          if [ "$TASK" = "backfill" ]; then
+            python billwatch.py backfill --year "$YEAR" && python billwatch.py feed
           elif [ "$TASK" = "rescreen" ] || { [ "$EVENT" = "push" ] && git diff --name-only HEAD~1 | grep -q config.yaml; }; then
             python billwatch.py screen && python billwatch.py run --send
           else

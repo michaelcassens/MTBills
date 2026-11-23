@@ -20,11 +20,12 @@ site_dir: docs            # the app + feed.json (GitHub Pages serves /docs)
 legmt:
   enabled: true
   api: https://bearbeta.legmt.gov
-  current_session_id: 3     # 3 = 2027 regular session; 2 = 2025 (use `backfill` for 2025)
+  current_session_id: 3     # 3 = 2027 regular session (use `backfill --year` for past sessions)
   request_delay: 0.25       # seconds between requests; be polite to the state's servers
   contact: null             # optional email sent in the User-Agent so the Legislature can reach you
   fetch_text: true          # download draft text, bill versions, and fiscal notes
   max_text_per_run: 600     # cap on items whose documents are fetched in one run
+  max_backfill_per_run: 1500  # cap on bills per backfill run; run it again to continue
 
 # Draft statuses where LC text is usually posted. A draft entering one of
 # these gets its text fetched and screened.

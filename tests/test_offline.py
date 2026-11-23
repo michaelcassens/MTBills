@@ -62,14 +62,17 @@ class FakeLegMT(LegMT):
     def __init__(self, cfg):
         super().__init__(cfg)
         self.delay = 0
-        self.records = {3: [], 2: []}
+        self.records = {3: [], 2: [], 20191: []}
         self.docs = {}          # (endpoint, key) -> [doc dicts]
         self.blobs = {}
 
     def get_json(self, path, **params):
+        if path.endswith("/archive/v1/sessions"):
+            return [{"ordinal": 68, "sessionId": 20231, "sessionYear": 2023, "sessionTypeCode": "R"},
+                    {"ordinal": 66, "sessionId": 20191, "sessionYear": 2019, "sessionTypeCode": "R"}]
         if path.endswith("/sessions"):
-            return [{"id": 2, "ordinals": "20251", "legislature": {"ordinals": "69"}},
-                    {"id": 3, "ordinals": "20271", "legislature": {"ordinals": "70"}}]
+            return [{"id": 2, "ordinals": "20251", "legislature": {"ordinals": "69"}, "startDate": "2025-01-06", "type": "REGULAR"},
+                    {"id": 3, "ordinals": "20271", "legislature": {"ordinals": "70"}, "startDate": "2027-01-04", "type": "REGULAR"}]
         if path.endswith("/legislators"):
             return [{"id": 33, "firstName": "Matt", "lastName": "Regier", "politicalParty": {"code": "R"}}]
         if path.endswith("/organizations"):
@@ -77,7 +80,7 @@ class FakeLegMT(LegMT):
         if "nonStandingCommittees" in path:
             return {"committeeDetails": {"committeeCode": {"name": "State Tribal Relations Committee"}}}
         ep = path.rsplit("/", 1)[-1]
-        key = params.get("lcnumber") or f"{params.get('billType')}{params.get('billNumber')}"
+        key = f"{params.get('sessionOrdinal')}:" + (params.get("lcnumber") or f"{params.get('billType')}{params.get('billNumber')}")
         return self.docs.get((ep, key), [])
 
     def all_items(self, session_id):
@@ -86,9 +89,9 @@ class FakeLegMT(LegMT):
     def content(self, doc_id):
         return self.blobs[doc_id]
 
-    def add_doc(self, ep, key, doc_id, fname, date, text):
+    def add_doc(self, ep, key, doc_id, fname, date, text, ses="20271"):
         self.blobs[doc_id] = make_pdf(text)
-        self.docs.setdefault((ep, key), []).append(
+        self.docs.setdefault((ep, f"{ses}:{key}"), []).append(
             {"id": doc_id, "fileName": fname, "date": date,
              "attributes": [{"name": "DocumentLink", "stringValue": f"https://docs.legmt.gov/download-ticket?ticketId={doc_id}"}]})
 
@@ -141,8 +144,26 @@ def main():
     print("--- backfill 2025 ---")
     api.records[2] = [raw(1337, "LC1339", "Establish Hanna's Act updates", "(H) Chapter Number Assigned",
                           ["Law Enforcement"], bill=("HB", 21), sid=2)]
-    api.add_doc("getBillVersions", "HB21", 8001, "HB0021_X.pdf", "2025-04-01 10:00:00 -0700", HANNA)
+    api.add_doc("getBillVersions", "HB21", 8001, "HB0021_X.pdf", "2025-04-01 10:00:00 -0700", HANNA, ses="20251")
     bw.backfill(cfg, 2, api=api)
+
+    print("--- backfill 2019 (archived session format) ---")
+    api.records[20191] = [
+        {"id": {"billDraftNumber": "LC0099", "sessionId": 20191}, "billSortNumber": "HB0021", "billType": "HB",
+         "billNumber": 21, "shortTitle": "Establish Hanna's Act", "hasFiscalNote": True,
+         "requesters": [{"lawEntity": {"firstName": "Rae", "lastName": "Peppers"}, "legislator": {"x": 1}}],
+         "requestOf": [{"lawEntity": {"firstName": None, "lastName": "State-Tribal Relations Committee"}, "legislator": None}],
+         "primarySponsorBillRoles": [{"lawEntity": {"firstName": "Rae", "lastName": "Peppers"}, "legislator": {"x": 1}}],
+         "subjects": [{"subject": {"description": "Indians"}}],
+         "billActions": [{"date": "2019-05-07T10:00:00", "actionType": {"description": "Chapter Number Assigned"}}]},
+        {"id": {"billDraftNumber": "LC0100", "sessionId": 20191}, "billSortNumber": "HB0022", "billType": "HB",
+         "billNumber": 22, "shortTitle": "Revise motor vehicle fees", "requesters": [], "requestOf": [],
+         "primarySponsorBillRoles": [], "subjects": [], "billActions": []}]
+    api.add_doc("getBillVersions", "HB21", 7001, "HB0021_1.pdf", "2019-01-07 10:00:00 -0700", HANNA, ses="20191")
+    api.add_doc("getBillVersions", "HB21", 7002, "HB0021_x.pdf", "2019-05-01 10:00:00 -0700",
+                HANNA.replace("Notification to tribal governments.", "Consultation. The department shall consult with tribal governments."), ses="20191")
+    api.add_doc("getBillVersions", "HB22", 7101, "HB0022_x.pdf", "2019-05-01 10:00:00 -0700", "AN ACT REVISING MOTOR VEHICLE FEES; " * 20, ses="20191")
+    bw.backfill(cfg, year=2019, api=api)
 
     out = bw.digest(cfg, send=True)
     bw.export_feed(cfg)
@@ -168,6 +189,12 @@ def main():
         "2025 feed written": (work / "docs" / "feed-2025.json").exists(),
         "Push marked urgent": bool(sent) and sent[-1][0]["Priority"] == "high",
         "Migrated v1 drafts kept": feed["total_tracked"] >= 4,
+        "2019 feed written": (work / "docs" / "feed-2019.json").exists(),
+        "2019 Hanna's Act full history": (lambda f: (lambda i: i["tribal"] == "likely" and len(i["versions"]) == 2
+            and i["consultation"] == "present" and "#/bill/20191/LC0099" in i["link"]
+            and i["by_request_of"] == "State-Tribal Relations Committee")(f["items"][0]))(
+            json.loads((work / "docs" / "feed-2019.json").read_text())),
+        "Session list labeled": [x["label"] for x in json.loads((work / "docs" / "sessions.json").read_text())["sessions"]] == ["2027", "2025", "2019"],
     }
     for k, v in checks.items():
         print(("PASS " if v else "FAIL ") + k)

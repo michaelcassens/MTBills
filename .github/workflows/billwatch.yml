@@ -4,8 +4,17 @@ on:
   schedule:
     - cron: "17 */4 * * *"        # every 4 hours (UTC); tighten during session if you like
   workflow_dispatch:               # "Run workflow" button in the Actions tab
+    inputs:
+      task:
+        description: "What to run"
+        type: choice
+        default: run
+        options:
+          - run                    # normal update: drafts, text, reviews, alerts, app feed
+          - backfill-2025          # one-time: load the 2025 session for retrospective review
+          - rescreen               # re-score everything after editing config.yaml
   push:
-    paths: ["data/inbox/**"]       # run as soon as you upload a new CSV export
+    paths: ["data/inbox/**", "config.yaml"]
 
 permissions:
   contents: write
@@ -17,23 +26,37 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
+    timeout-minutes: 300
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      - name: Collect, screen, alert, publish feed
-        run: python billwatch.py run --send
+      - name: Bill Watch
         env:
           LEGISCAN_API_KEY: ${{ secrets.LEGISCAN_API_KEY }}
           BILLWATCH_NTFY_TOPIC: ${{ secrets.BILLWATCH_NTFY_TOPIC }}
           BILLWATCH_NTFY_TOKEN: ${{ secrets.BILLWATCH_NTFY_TOKEN }}
           BILLWATCH_SMTP_PASSWORD: ${{ secrets.BILLWATCH_SMTP_PASSWORD }}
+          TASK: ${{ github.event.inputs.task || 'run' }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "$TASK" = "backfill-2025" ]; then
+            python billwatch.py backfill --session 2 && python billwatch.py feed
+          elif [ "$TASK" = "rescreen" ] || { [ "$EVENT" = "push" ] && git diff --name-only HEAD~1 | grep -q config.yaml; }; then
+            python billwatch.py screen && python billwatch.py run --send
+          else
+            python billwatch.py run --send
+          fi
       - name: Save database and feed
+        if: always()
         run: |
           git config user.name "bill-watch-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A data/billwatch.db data/inbox docs/feed.json
+          git add -A data/billwatch.db data/inbox docs/
           git diff --cached --quiet || git commit -m "Bill Watch update $(date -u +%Y-%m-%dT%H:%MZ)"
+          git pull --rebase --autostash || true
           git push

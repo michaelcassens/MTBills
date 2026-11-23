@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bill Watch</title>
-<meta name="description" content="Montana legislative drafts and bills flagged for possible effects on tribal lands and communities.">
+<meta name="description" content="Montana drafts and bills screened for tribal interests and tribal consultation, with AIGPI review.">
 <meta name="theme-color" content="#1e5a7a">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -13,91 +13,124 @@
 <style>
 :root{
   --paper:#f3f6f7; --surface:#ffffff; --ink:#18232c; --muted:#4a5864; --rule:#cfd8dd;
-  --river:#1e5a7a; --direct:#8a2b1f; --geo:#7a5200; --watch:#4b5d6b; --new:#1e5a7a;
-  --focus:#c27c00; color-scheme:light;
+  --river:#1e5a7a; --alert:#8a2b1f; --caution:#7a5200; --ok:#2d6a3e; --watch:#4b5d6b;
+  --ins:#e3f1e6; --del:#f8e4e1; --focus:#c27c00; color-scheme:light;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --paper:#121a20; --surface:#19232b; --ink:#e6edf1; --muted:#a8b6c0; --rule:#2c3a44;
-  --river:#7fbde0; --direct:#f09a8c; --geo:#e6b85c; --watch:#a9bccb; --new:#7fbde0; --focus:#f0b44c;
-  color-scheme:dark;}}
+  --river:#7fbde0; --alert:#f09a8c; --caution:#e6b85c; --ok:#8fd19e; --watch:#a9bccb;
+  --ins:#1d3324; --del:#3a2220; --focus:#f0b44c; color-scheme:dark;}}
 *,*::before,*::after{box-sizing:inherit}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--paper);color:var(--ink);
   font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--paper)}
 a{color:var(--river)}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .skip{position:absolute;left:-999px}.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.5rem;z-index:20}
-.wrap{max-width:46rem;margin:0 auto;padding:0 1rem 3rem}
-header{padding:1.25rem 0 .75rem;border-bottom:2px solid var(--ink)}
+.wrap{max-width:48rem;margin:0 auto;padding:0 1rem 3rem}
+header{padding:1.25rem 0 .75rem;border-bottom:2px solid var(--ink);display:flex;gap:1rem;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
 h1{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-weight:600;
   font-size:2rem;line-height:1.1;margin:0;letter-spacing:-.01em}
-.sub{margin:.35rem 0 0;color:var(--muted);font-size:.9rem}
-.bar{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin:1rem 0 .5rem}
-.seg{display:flex;border:1px solid var(--ink);border-radius:6px;overflow:hidden}
-.seg button{font:inherit;font-size:.9rem;background:var(--surface);color:var(--ink);border:0;
-  padding:.45rem .7rem;min-height:44px;cursor:pointer;border-right:1px solid var(--ink)}
-.seg button:last-child{border-right:0}
-.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
-.search{flex:1 1 12rem}
-.search input{width:100%;font:inherit;padding:.5rem .7rem;min-height:44px;border:1px solid var(--muted);
-  border-radius:6px;background:var(--surface);color:var(--ink)}
-.refresh{font:inherit;font-size:.9rem;min-height:44px;padding:.45rem .8rem;border:1px solid var(--river);
+.sub{margin:.35rem 0 0;color:var(--muted);font-size:.9rem;max-width:34rem}
+.account{font-size:.88rem;color:var(--muted);text-align:right}
+.account form{display:flex;gap:.4rem;flex-wrap:wrap;justify-content:flex-end;margin-top:.3rem}
+.account input{font:inherit;padding:.4rem .6rem;min-height:44px;border:1px solid var(--muted);border-radius:6px;background:var(--surface);color:var(--ink)}
+button.link{font:inherit;background:none;border:0;color:var(--river);text-decoration:underline;cursor:pointer;min-height:44px;padding:0 .2rem}
+.btn{font:inherit;font-size:.9rem;min-height:44px;padding:.45rem .9rem;border:1px solid var(--river);
   color:var(--river);background:transparent;border-radius:6px;cursor:pointer}
-.status{color:var(--muted);font-size:.9rem;margin:.25rem 0 1rem}
-h2{font-size:1rem;margin:1.5rem 0 .5rem}
-.hearings{border:2px solid var(--direct);border-radius:6px;padding:.25rem .9rem .75rem;background:var(--surface)}
-.hearings h2{margin-top:.6rem;color:var(--direct)}
+.btn.primary{background:var(--river);color:var(--paper)}
+.controls{margin:1rem 0 .25rem;display:grid;gap:.6rem}
+.row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+.seg{display:flex;flex-wrap:wrap;gap:.4rem}
+.seg button{font:inherit;font-size:.9rem;background:var(--surface);color:var(--ink);border:1px solid var(--ink);
+  border-radius:6px;padding:.45rem .75rem;min-height:44px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+select,.search input{font:inherit;padding:.5rem .6rem;min-height:44px;border:1px solid var(--muted);
+  border-radius:6px;background:var(--surface);color:var(--ink)}
+.search{flex:1 1 12rem}.search input{width:100%}
+.view-note{color:var(--muted);font-size:.9rem;margin:.4rem 0 0}
+.status{color:var(--muted);font-size:.9rem;margin:.6rem 0 1rem}
+h2{font-size:1rem;margin:1.25rem 0 .4rem}
+.hearings{border:2px solid var(--alert);border-radius:6px;padding:.25rem .9rem .75rem;background:var(--surface)}
+.hearings h2{margin-top:.6rem;color:var(--alert)}
 .hearings ul{margin:0;padding-left:1.1rem}
 ol.items{list-style:none;margin:0;padding:0}
 .item{border-bottom:1px solid var(--rule)}
 .item details>summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:2.4rem 1fr;
   gap:.6rem;padding:.9rem 0;min-height:44px}
 .item details>summary::-webkit-details-marker{display:none}
-/* Tier weight: three bars, filled by tier rank. Paired with a text label, never color alone. */
+/* Tribal-interest weight: three bars, filled by level. Always paired with a text label. */
 .weight{display:flex;flex-direction:column;gap:3px;padding-top:.35rem}
 .weight i{display:block;height:5px;border:1.5px solid currentColor;border-radius:1px}
 .weight i.on{background:currentColor}
-.t-direct{color:var(--direct)}.t-geographic{color:var(--geo)}.t-indirect{color:var(--watch)}
-.top{display:flex;gap:.5rem;flex-wrap:wrap;align-items:baseline;font-size:.85rem;color:var(--muted)}
+.l-likely{color:var(--alert)}.l-possible{color:var(--caution)}.l-none{color:var(--watch)}
+.top{display:flex;gap:.35rem .7rem;flex-wrap:wrap;align-items:baseline;font-size:.85rem;color:var(--muted)}
 .idn{font-weight:700;color:var(--ink);font-size:.95rem}
-.tier{font-weight:600}
-.new{font-weight:700;color:var(--new)}
+.lvl{font-weight:600}
+.flag{font-weight:600}
+.c-gap{color:var(--alert)}.c-ok{color:var(--ok)}.c-unk{color:var(--muted)}
+.rv{display:inline-block;border:1px solid currentColor;border-radius:4px;padding:0 .35rem;font-weight:600}
+.rv-confirmed{color:var(--river)}.rv-not{color:var(--muted)}.rv-un{color:var(--muted);border-style:dashed}.rv-stale{color:var(--caution)}
+.new{font-weight:700;color:var(--river)}
 .title{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:1.12rem;
   line-height:1.35;margin:.15rem 0 .2rem;color:var(--ink)}
 .latest{font-size:.88rem;color:var(--muted)}
-.body{padding:0 0 1rem 3rem;font-size:.93rem}
-.body dl{display:grid;grid-template-columns:max-content 1fr;gap:.25rem .8rem;margin:0 0 .75rem}
+.tags{font-size:.82rem;color:var(--muted);margin-top:.15rem}
+.body{padding:0 0 1.25rem 3rem;font-size:.93rem}
+.body h3{font-size:.95rem;margin:1rem 0 .3rem}
+.body dl{display:grid;grid-template-columns:max-content 1fr;gap:.25rem .8rem;margin:0 0 .5rem}
 .body dt{color:var(--muted)}.body dd{margin:0}
-blockquote{margin:.5rem 0;padding:.1rem 0 .1rem .8rem;border-left:3px solid var(--rule);color:var(--ink)}
-.links{display:flex;gap:1rem;flex-wrap:wrap;margin:.5rem 0}
+.body ul{margin:.2rem 0;padding-left:1.1rem}
+blockquote{margin:.4rem 0;padding:.1rem 0 .1rem .8rem;border-left:3px solid var(--rule)}
+blockquote .k{display:block;font-size:.8rem;color:var(--muted)}
+.change{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:.5rem .8rem;margin:.4rem 0}
+.change ins,.change del{display:block;text-decoration:none;padding:.25rem .5rem;margin:.3rem 0;border-radius:4px}
+.change ins{background:var(--ins)}.change del{background:var(--del)}
+.change summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--river)}
+.links{display:flex;gap:.25rem 1rem;flex-wrap:wrap;margin:.25rem 0}
 .links a{display:inline-block;min-height:44px;line-height:44px}
-.hist{margin:.25rem 0 0;padding-left:1.1rem;color:var(--muted)}
+.hist{color:var(--muted)}
+.review{border:1px solid var(--river);border-radius:6px;padding:.25rem .9rem .9rem;margin-top:1rem;background:var(--surface)}
+.review fieldset{border:0;padding:0;margin:.6rem 0}
+.review legend{font-weight:600;margin-bottom:.2rem}
+.review label.opt{display:flex;gap:.5rem;align-items:center;min-height:40px}
+.review label:not(.opt){display:block;margin:.6rem 0}
+.review textarea{display:block;margin-top:.25rem;box-sizing:border-box;max-width:100%;width:100%;font:inherit;padding:.5rem;border:1px solid var(--muted);border-radius:6px;background:var(--paper);color:var(--ink);min-height:4.5rem}
+.review .saved{color:var(--ok);font-weight:600;margin-left:.6rem}
+.review .err{color:var(--alert);font-weight:600;margin-left:.6rem}
+.notes li{margin:.3rem 0}
 .empty{padding:2rem 0;color:var(--muted)}
+.more{display:block;margin:1rem auto}
+@media (max-width:540px){.body{padding-left:0}.account{text-align:left}.account form{justify-content:flex-start}}
 @media (prefers-reduced-motion:no-preference){.item details[open] .body{animation:open .18s ease-out}
   @keyframes open{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}}
 </style>
 </head>
 <body>
-<a class="skip" href="#list">Skip to flagged items</a>
+<a class="skip" href="#list">Skip to the list</a>
 <div class="wrap">
   <header>
-    <h1>Bill Watch</h1>
-    <p class="sub">Montana drafts and bills that may affect tribal lands, nations, and nearby communities. Flags come from keyword screening; read the text before acting.</p>
+    <div>
+      <h1>Bill Watch</h1>
+      <p class="sub">Montana drafts and bills screened for tribal interests and tribal consultation. Screening flags are leads; AIGPI review confirms them.</p>
+    </div>
+    <div class="account" id="account"></div>
   </header>
 
-  <div class="bar" role="toolbar" aria-label="Filter flagged items">
-    <div class="seg" id="tiers">
-      <button type="button" data-tier="all" aria-pressed="true">All</button>
-      <button type="button" data-tier="direct" aria-pressed="false">Direct</button>
-      <button type="button" data-tier="geographic" aria-pressed="false">Geographic</button>
-      <button type="button" data-tier="indirect" aria-pressed="false">Watch</button>
+  <div class="controls" role="search" aria-label="Filter the list">
+    <div class="row">
+      <div class="seg" id="sessions" aria-label="Session"></div>
+      <label><span class="sr">Pathways area</span>
+        <select id="tag"><option value="">All Pathways areas</option></select></label>
+      <label class="search"><span class="sr">Search by number, title, requester, or term</span>
+        <input id="q" type="search" placeholder="Search bills, requesters, terms" autocomplete="off"></label>
+      <button type="button" class="btn" id="refresh">Refresh</button>
     </div>
-    <label class="search"><span class="skip">Search by number, title, sponsor, or term</span>
-      <input id="q" type="search" placeholder="Search bills, sponsors, terms" autocomplete="off"></label>
-    <button type="button" class="refresh" id="refresh">Refresh</button>
+    <div class="seg" id="views" aria-label="View"></div>
+    <p class="view-note" id="view-note"></p>
   </div>
   <p class="status" id="status" role="status" aria-live="polite">Loading…</p>
 
@@ -105,104 +138,306 @@ blockquote{margin:.5rem 0;padding:.1rem 0 .1rem .8rem;border-left:3px solid var(
     <h2 id="h-hear">Upcoming hearings</h2><ul id="hear-list"></ul>
   </section>
 
-  <h2 id="list-h" class="skip">Flagged items</h2>
+  <h2 id="list-h" class="sr">Bills and drafts</h2>
   <ol class="items" id="list" aria-labelledby="list-h" tabindex="-1"></ol>
+  <button type="button" class="btn more" id="more" hidden>Show more</button>
 </div>
 
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-const TIER = {direct:["Direct",3], geographic:["Geographic",2], indirect:["Watch",1]};
-const state = {feed:null, tier:"all", q:""};
-let lastVisit = null;
-try { lastVisit = localStorage.getItem("bw-last-visit"); } catch(e) {}
-
+const CFG = window.BILLWATCH || {};
+const LEVEL = {likely:["Tribal interests likely",3], possible:["Possible tribal interests",2], none:["No tribal signal",0]};
+const CONSULT = {
+  "absent": ["No consultation provision","c-gap"], "notice only": ["Notice to tribes only, no consultation","c-gap"],
+  "present": ["Has a consultation provision","c-ok"], "unknown": ["No text yet","c-unk"]};
+const VIEWS = [
+  {id:"attention", label:"Needs attention", note:"Tribal interests likely or possible, and the text has no consultation provision or lost one by amendment.",
+   test:i => i.tribal!=="none" && (i.gap || (i.changes||[]).some(c=>c.consultation_removed)) && reviewOf(i).tribal_interest!=="not_implicated"},
+  {id:"tribal", label:"Tribal interests", note:"Everything screening flagged as likely or possible, reviewed or not.",
+   test:i => i.tribal!=="none"},
+  {id:"tracking", label:"AIGPI tracking", note:"Bills AIGPI reviewers have confirmed implicate tribal interests.",
+   test:i => reviewOf(i).tribal_interest==="confirmed"},
+  {id:"queue", label:"Review queue", reviewer:true, note:"Flagged items not yet reviewed, plus reviewed items amended since review.",
+   test:i => i.tribal!=="none" && (!reviewOf(i).tribal_interest || reviewOf(i).tribal_interest==="unreviewed" || stale(i))},
+  {id:"all", label:"All Pathways", note:"Every draft and bill tagged with an AIGPI Pathways area, tribal signal or not.",
+   test:i => true},
+];
+const state = {sessions:[], session:null, feed:null, view:"attention", tag:"", q:"", shown:60,
+               reviews:{}, sb:null, user:null, reviewer:false};
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const when = ts => { if(!ts) return ""; const d = new Date(ts);
   return isNaN(d) ? ts : d.toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}); };
+const store = {get:k=>{try{return localStorage.getItem(k)}catch(e){return null}}, set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
+const reviewOf = i => state.reviews[i.key] || i.review || {};
+const stale = i => { const r = reviewOf(i); return r.tribal_interest && r.tribal_interest!=="unreviewed" && r.reviewed_version && i.version && r.reviewed_version!==i.version; };
+let lastVisit = null;
 
-function weight(tier){
-  const n = (TIER[tier]||["",0])[1];
-  return `<span class="weight t-${esc(tier)}" aria-hidden="true">${[3,2,1].map(i=>`<i class="${i<=n?"on":""}"></i>`).join("")}</span>`;
+/* ---------- rendering ---------- */
+function weight(level){
+  const n = (LEVEL[level]||LEVEL.none)[1];
+  return `<span class="weight l-${esc(level)}" aria-hidden="true">${[3,2,1].map(k=>`<i class="${k<=n?"on":""}"></i>`).join("")}</span>`;
+}
+function reviewBadge(i){
+  const r = reviewOf(i);
+  if (i.tribal==="none" && !r.tribal_interest) return "";
+  if (stale(i)) return `<span class="rv rv-stale">Amended since AIGPI review</span>`;
+  if (r.tribal_interest==="confirmed") return `<span class="rv rv-confirmed">AIGPI tracking</span>`;
+  if (r.tribal_interest==="not_implicated") return `<span class="rv rv-not">AIGPI: not implicated</span>`;
+  return `<span class="rv rv-un">Not yet reviewed</span>`;
+}
+function changeHTML(c){
+  if (c.kind==="fiscal") {
+    const amt = [...(c.amounts_added||[]).map(a=>`+ ${a}`), ...(c.amounts_removed||[]).map(a=>`− ${a}`)];
+    return `<div class="change"><p><strong>${esc(c.from)} → ${esc(c.to)}</strong></p>
+      ${amt.length?`<p>Dollar figures changed: ${esc(amt.join(", "))}</p>`:"<p>No dollar figures changed.</p>"}
+      ${(c.added||[]).length||(c.removed||[]).length ? `<details><summary>Show changed lines</summary>
+        ${(c.removed||[]).map(s=>`<del><span class="sr">Removed: </span>${esc(s)}</del>`).join("")}
+        ${(c.added||[]).map(s=>`<ins><span class="sr">Added: </span>${esc(s)}</ins>`).join("")}</details>`:""}</div>`;
+  }
+  const facts = [];
+  if (c.consultation_change) facts.push(`<li><strong>Consultation: ${esc(c.consultation_change)}</strong></li>`);
+  if (c.tribal_change) facts.push(`<li>Tribal interests: ${esc(c.tribal_change)}</li>`);
+  facts.push(`<li>${c.n_added} passage(s) added, ${c.n_removed} removed</li>`);
+  if ((c.signals_added||[]).length) facts.push(`<li>New flags: ${esc(c.signals_added.join("; "))}</li>`);
+  if ((c.signals_removed||[]).length) facts.push(`<li>Flags no longer present: ${esc(c.signals_removed.join("; "))}</li>`);
+  if ((c.mca_added||[]).length) facts.push(`<li>Now cites MCA ${esc(c.mca_added.join(", "))}</li>`);
+  if ((c.mca_removed||[]).length) facts.push(`<li>No longer cites MCA ${esc(c.mca_removed.join(", "))}</li>`);
+  const diff = [...(c.removed||[]).map(s=>`<del><span class="sr">Removed: </span>${esc(s)}</del>`),
+                ...(c.added||[]).map(s=>`<ins><span class="sr">Added: </span>${esc(s)}</ins>`)].join("");
+  return `<div class="change"><p><strong>${esc(c.from)} → ${esc(c.to)}</strong></p><ul>${facts.join("")}</ul>
+    ${diff?`<details><summary>Show changed language</summary>${diff}</details>`:""}</div>`;
+}
+function reviewForm(i){
+  const r = reviewOf(i);
+  const radio = (name,val,label,cur) => `<label class="opt"><input type="radio" name="${name}" value="${val}" ${cur===val?"checked":""}> ${label}</label>`;
+  const ti = r.tribal_interest || "unreviewed", co = r.consultation || "";
+  return `<form class="review" data-key="${esc(i.key)}">
+    <h3>AIGPI review</h3>
+    <p class="hist">Reviewing ${esc(i.version || "the title only (no text yet)")}.${r.reviewer_email?` Last saved by ${esc(r.reviewer_email)} ${esc(when(r.updated_at))}.`:""}</p>
+    <fieldset><legend>Tribal interests</legend>
+      ${radio("ti-"+i.key,"unreviewed","Not yet reviewed",ti)}
+      ${radio("ti-"+i.key,"confirmed","Confirmed: tribal interests implicated (adds the AIGPI tracking flag)",ti)}
+      ${radio("ti-"+i.key,"not_implicated","Not implicated",ti)}</fieldset>
+    <fieldset><legend>Consultation provision in the text</legend>
+      ${radio("co-"+i.key,"yes","Yes",co)}${radio("co-"+i.key,"partial","Partial or notice only",co)}${radio("co-"+i.key,"no","No",co)}</fieldset>
+    <label>Public note <span class="hist">(shown to everyone)</span><textarea name="public_note">${esc(r.public_note||"")}</textarea></label>
+    <label>Internal note <span class="hist">(reviewers only; adds to the list below)</span><textarea name="internal_note"></textarea></label>
+    <p><button type="submit" class="btn primary">Save review</button><span class="msg" role="status" aria-live="polite"></span></p>
+    <h3>Internal notes</h3><ul class="notes"><li class="hist">Loading…</li></ul>
+  </form>`;
+}
+function itemHTML(i){
+  const [lvl] = LEVEL[i.tribal] || LEVEL.none;
+  const [ctext, ccls] = CONSULT[i.consultation] || CONSULT.unknown;
+  const r = reviewOf(i);
+  const isNew = lastVisit && i.updated > lastVisit;
+  const evs = (i.events||[]).filter(e => !/^(Tribal interests (likely|possible)|Text has no)/.test(e.detail));
+  const top = Math.max(0, ...evs.map(e=>e.priority||0));
+  const ev = evs.find(e => (e.priority||0) === top);
+  const latest = ev && !/^New draft request/.test(ev.detail) ? ev.detail : `Status: ${i.status}`;
+  const who = i.requester + (i.by_request_of && i.by_request_of!==i.requester ? "" : "");
+  const short = i.bill || i.lc;
+  const removed = (i.changes||[]).some(c=>c.consultation_removed);
+  const body = i.tribal==="none" && !i.signals ? `
+      <dl>${i.requester?`<dt>Requested by</dt><dd>${esc(i.requester)}</dd>`:""}
+        <dt>Status</dt><dd>${esc(i.status)}</dd><dt>Pathways</dt><dd>${esc((i.tags||[]).join(", "))}</dd></dl>
+      <div class="links"><a href="${esc(i.link)}" target="_blank" rel="noopener">Open ${esc(short)} in Bill Explorer</a>
+        ${i.text_url?`<a href="${esc(i.text_url)}" target="_blank" rel="noopener">Latest text of ${esc(short)} (PDF)</a>`:""}</div>` : `
+      <dl>
+        <dt>Requested by</dt><dd>${esc(who||"—")}</dd>
+        ${i.by_request_of && i.by_request_of!==i.requester?`<dt>By request of</dt><dd>${esc(i.by_request_of)}</dd>`:""}
+        ${i.sponsor?`<dt>Sponsor</dt><dd>${esc(i.sponsor)}</dd>`:""}
+        <dt>Status</dt><dd>${esc(i.status||"—")} ${i.status_date?`(${esc(i.status_date)})`:""}</dd>
+        ${(i.subjects||[]).length?`<dt>Subjects</dt><dd>${esc(i.subjects.join(", "))}</dd>`:""}
+        <dt>Pathways</dt><dd>${esc((i.tags||[]).join(", ")||"—")}</dd>
+        <dt>Screened on</dt><dd>${esc(i.basis)}${i.version?`, ${esc(i.version)}`:""}</dd>
+      </dl>
+      ${r.public_note?`<h3>AIGPI note</h3><blockquote>${esc(r.public_note)}</blockquote>`:""}
+      <h3>Why it was flagged</h3>
+      <ul>${(i.signals||[]).map(s=>`<li><strong>${esc(s.type)}:</strong> ${esc(s.detail.join(", "))}</li>`).join("")}</ul>
+      <h3>Consultation</h3>
+      <p class="flag ${ccls}">${esc(ctext)}${removed?" (consultation language was removed by amendment)":""}</p>
+      ${(i.evidence||[]).map(e=>`<blockquote><span class="k">${e.kind==="notice"?"Notice language":"Consultation language"}</span>${esc(e.text)}</blockquote>`).join("")}
+      ${(i.changes||[]).length?`<h3>What changed</h3>${i.changes.map(changeHTML).join("")}`:""}
+      ${(i.hearings||[]).length?`<h3>Hearings</h3><ul>${i.hearings.map(h=>`<li>${esc(h.date)} ${esc(h.time||"")} ${esc(h.location||"")}</li>`).join("")}</ul>`:""}
+      <h3>Documents</h3>
+      <div class="links">
+        <a href="${esc(i.link)}" target="_blank" rel="noopener">Open ${esc(short)} in Bill Explorer</a>
+        ${(i.versions||[]).slice().reverse().map(v=>`<a href="${esc(v.url)}" target="_blank" rel="noopener">${esc(short)} ${esc(v.label)} (PDF)</a>`).join("")}
+        ${(i.fiscal||[]).slice().reverse().map(v=>`<a href="${esc(v.url)}" target="_blank" rel="noopener">${esc(short)} ${esc(v.label)} (PDF)</a>`).join("")}
+        ${(i.amendments||[]).map(v=>`<a href="${esc(v.url)}" target="_blank" rel="noopener">Amendment ${esc(v.file)}</a>`).join("")}
+      </div>
+      ${(i.mca||[]).length?`<p class="hist">Cites MCA ${esc(i.mca.join(", "))}</p>`:""}
+      ${(i.events||[]).length?`<h3>Activity</h3><ul class="hist">${i.events.map(e=>`<li>${esc(when(e.ts))}: ${esc(e.detail)}</li>`).join("")}</ul>`:""}
+      ${state.reviewer?reviewForm(i):""}`;
+  return `<li class="item"><details data-key="${esc(i.key)}">
+    <summary>${weight(i.tribal)}<div>
+      <div class="top"><span class="idn">${esc(i.id)}</span>
+        <span class="lvl l-${esc(i.tribal)}">${lvl}</span>
+        ${i.tribal!=="none"?`<span class="flag ${ccls}">${esc(removed?"Consultation removed by amendment":ctext)}</span>`:""}
+        ${reviewBadge(i)}
+        ${isNew?'<span class="new">New since your last visit</span>':""}</div>
+      <p class="title">${esc(i.title)}</p>
+      <div class="latest">${esc(latest)} <span>(${esc(when(i.updated))})</span></div>
+      ${(i.tags||[]).length?`<div class="tags">Pathways: ${esc(i.tags.join(", "))}</div>`:""}
+    </div></summary>
+    <div class="body">${body}</div></details></li>`;
 }
 
-function itemHTML(it){
-  const [label] = TIER[it.tier] || ["Flag"];
-  const isNew = lastVisit && it.updated > lastVisit;
-  const ev = (it.events||[]).find(e => !/^(Matched|Now matches)/.test(e.detail));
-  const latest = !ev || /^New draft request/.test(ev.detail) ? `Status: ${it.status}` : ev.detail;
-  const hearings = (it.hearings||[]).map(h=>`<li>${esc(h.type||"Hearing")}: ${esc(h.date)} ${esc(h.time||"")} ${esc(h.location||"")}</li>`).join("");
-  return `<li class="item"><details>
-    <summary>${weight(it.tier)}<div>
-      <div class="top"><span class="idn">${esc(it.id)}</span>
-        <span class="tier t-${esc(it.tier)}">${label}</span>
-        <span>${it.kind==="draft"?"Draft request":"Bill"}</span>
-        ${isNew?'<span class="new">New since last visit</span>':""}</div>
-      <p class="title">${esc(it.title)}</p>
-      <div class="latest">${esc(latest)} <span>(${esc(when(it.updated))})</span></div>
-    </div></summary>
-    <div class="body">
-      <dl>
-        <dt>Requested by</dt><dd>${esc(it.who||"—")}</dd>
-        <dt>Status</dt><dd>${esc(it.status||"—")}</dd>
-        <dt>Matched</dt><dd>${esc((it.terms||[]).join(", "))} <span>(${esc(it.basis)})</span></dd>
-      </dl>
-      ${hearings?`<p><strong>Hearings</strong></p><ul>${hearings}</ul>`:""}
-      ${(it.snippets||[]).map(s=>`<blockquote>${esc(s)}</blockquote>`).join("")}
-      <div class="links">
-        ${it.text_url?`<a href="${esc(it.text_url)}" target="_blank" rel="noopener">Read ${esc(it.text_type||"latest")} text of ${esc(it.id.split(" ")[0])} (PDF)</a>`:""}
-        ${it.link?`<a href="${esc(it.link)}" target="_blank" rel="noopener">Open ${esc(it.id.split(" ")[0])} in Bill Explorer</a>`:""}
-      </div>
-      ${(it.events||[]).length?`<p><strong>Activity</strong></p><ul class="hist">${it.events.map(e=>`<li>${esc(when(e.ts))}: ${esc(e.detail)}</li>`).join("")}</ul>`:""}
-    </div></details></li>`;
+function filtered(){
+  const f = state.feed; if(!f) return [];
+  const view = VIEWS.find(v=>v.id===state.view) || VIEWS[0];
+  const q = state.q.toLowerCase().trim();
+  return f.items.filter(i => view.test(i) &&
+    (!state.tag || (i.tags||[]).includes(state.tag)) &&
+    (!q || [i.id,i.title,i.requester,i.by_request_of,i.sponsor,(i.tags||[]).join(" "),
+            (i.signals||[]).map(s=>s.detail.join(" ")).join(" ")].join(" ").toLowerCase().includes(q)));
 }
 
 function render(){
   const f = state.feed; if(!f) return;
-  const q = state.q.toLowerCase().trim();
-  const items = f.items.filter(it =>
-    (state.tier==="all" || it.tier===state.tier) &&
-    (!q || [it.id,it.title,it.who,(it.terms||[]).join(" ")].join(" ").toLowerCase().includes(q)));
+  const view = VIEWS.find(v=>v.id===state.view);
+  document.getElementById("views").innerHTML = VIEWS.filter(v=>!v.reviewer||state.reviewer)
+    .map(v=>`<button type="button" data-view="${v.id}" aria-pressed="${v.id===state.view}">${esc(v.label)} (${f.items.filter(v.test).length})</button>`).join("");
+  document.getElementById("view-note").textContent = view.note;
+  const tags = [...new Set(f.items.flatMap(i=>i.tags||[]))].sort();
+  const sel = document.getElementById("tag");
+  sel.innerHTML = `<option value="">All Pathways areas</option>` + tags.map(t=>`<option ${t===state.tag?"selected":""}>${esc(t)}</option>`).join("");
+  const items = filtered();
   const list = document.getElementById("list");
-  list.innerHTML = items.length ? items.map(itemHTML).join("")
-    : `<li class="empty">No flagged items match. Clear the search or choose All.</li>`;
+  list.innerHTML = items.length ? items.slice(0,state.shown).map(itemHTML).join("")
+    : `<li class="empty">Nothing matches. Clear the search, pick All Pathways areas, or try another view.</li>`;
+  document.getElementById("more").hidden = items.length <= state.shown;
   const nNew = lastVisit ? f.items.filter(i=>i.updated>lastVisit).length : 0;
   document.getElementById("status").textContent =
-    `${items.length} of ${f.count} flagged items shown. Updated ${when(f.generated)}.` + (nNew?` ${nNew} new since your last visit.`:"");
-
+    `${items.length} shown. ${f.label} session: ${f.total_tracked} drafts and bills screened, updated ${when(f.generated)}.` + (nNew?` ${nNew} changed since your last visit.`:"");
   const today = new Date().toISOString().slice(0,10);
-  const hear = f.items.flatMap(it => (it.hearings||[]).filter(h=>(h.date||"")>=today).map(h=>({h,it})))
-    .sort((a,b)=>(a.h.date+(a.h.time||"")).localeCompare(b.h.date+(b.h.time||"")));
-  const box = document.getElementById("hearings");
-  box.hidden = !hear.length;
-  document.getElementById("hear-list").innerHTML = hear.slice(0,8).map(({h,it}) =>
-    `<li><strong>${esc(h.date)} ${esc(h.time||"")}</strong>: ${esc(it.id)}, ${esc(it.title)} (${esc(h.location||"location TBD")})</li>`).join("");
+  const hear = f.items.flatMap(i => (i.hearings||[]).filter(h=>(h.date||"")>=today).map(h=>({h,i})))
+    .filter(x=>x.i.tribal!=="none").sort((a,b)=>(a.h.date+(a.h.time||"")).localeCompare(b.h.date+(b.h.time||"")));
+  document.getElementById("hearings").hidden = !hear.length;
+  document.getElementById("hear-list").innerHTML = hear.slice(0,8).map(({h,i}) =>
+    `<li><strong>${esc(h.date)} ${esc(h.time||"")}</strong>: ${esc(i.id)}, ${esc(i.title)} (${esc(h.location||"location to be announced")})</li>`).join("");
 }
 
+function renderSessions(){
+  const box = document.getElementById("sessions");
+  box.hidden = state.sessions.length < 2;
+  box.innerHTML = state.sessions.map(s=>`<button type="button" data-session="${esc(s.id)}" aria-pressed="${s.id===state.session}">${esc(s.label)} session</button>`).join("");
+}
+
+/* ---------- data ---------- */
+async function loadReviews(){
+  if (!state.sb) return;
+  const {data, error} = await state.sb.from("reviews").select("*");
+  if (!error && data) state.reviews = Object.fromEntries(data.map(r=>[r.item_key, r]));
+}
 async function load(){
   const st = document.getElementById("status");
   st.textContent = "Loading…";
   try {
-    const r = await fetch("feed.json?t=" + Date.now(), {cache:"no-store"});
-    if(!r.ok) throw new Error("HTTP " + r.status);
+    const s = await (await fetch("sessions.json?t="+Date.now(), {cache:"no-store"})).json();
+    state.sessions = s.sessions;
+    if (!state.session) state.session = store.get("bw-session") || s.current;
+    if (!state.sessions.find(x=>x.id===state.session)) state.session = (state.sessions[0]||{}).id;
+    renderSessions();
+    const meta = state.sessions.find(x=>x.id===state.session);
+    const r = await fetch(meta.file+"?t="+Date.now(), {cache:"no-store"});
+    if(!r.ok) throw new Error("HTTP "+r.status);
     state.feed = await r.json();
+    lastVisit = store.get("bw-last-visit-"+state.session);
+    await loadReviews();
     render();
   } catch(e) {
-    st.textContent = "Couldn't load the feed. Check your connection, then tap Refresh.";
+    st.textContent = "Couldn't load the list. Check your connection, then choose Refresh.";
   }
 }
 
-document.getElementById("tiers").addEventListener("click", e => {
-  const b = e.target.closest("button"); if(!b) return;
-  state.tier = b.dataset.tier;
-  document.querySelectorAll("#tiers button").forEach(x => x.setAttribute("aria-pressed", x===b));
-  render();
+/* ---------- reviewer sign-in ---------- */
+function renderAccount(msg){
+  const box = document.getElementById("account");
+  if (!state.sb) { box.innerHTML = ""; return; }
+  if (state.user) {
+    box.innerHTML = `${esc(state.user.email)}${state.reviewer?", AIGPI reviewer":", not on the reviewer list"}
+      <button type="button" class="link" id="signout">Sign out</button>`;
+  } else {
+    box.innerHTML = `<form id="signin"><label><span class="sr">Reviewer email</span>
+      <input type="email" name="email" placeholder="Reviewer email" autocomplete="email" required></label>
+      <button type="submit" class="btn">Reviewer sign in</button></form>${msg?`<p role="status">${esc(msg)}</p>`:""}`;
+  }
+}
+async function checkUser(){
+  const {data} = await state.sb.auth.getUser();
+  state.user = data && data.user;
+  state.reviewer = false;
+  if (state.user) {
+    const r = await state.sb.from("reviewers").select("email").limit(1);
+    state.reviewer = !!(r.data && r.data.length);
+  }
+  if (!state.reviewer && state.view==="queue") state.view = "attention";
+  renderAccount(); render();
+}
+async function loadNotes(form){
+  const ul = form.querySelector(".notes");
+  const {data, error} = await state.sb.from("review_notes").select("*").eq("item_key", form.dataset.key).order("created_at");
+  ul.innerHTML = error ? `<li class="hist">Couldn't load notes.</li>` :
+    (data.length ? data.map(n=>`<li>${esc(n.note)} <span class="hist">(${esc(n.author_email)}, ${esc(when(n.created_at))})</span></li>`).join("")
+                 : `<li class="hist">No internal notes yet.</li>`);
+}
+async function saveReview(form){
+  const key = form.dataset.key, item = state.feed.items.find(i=>i.key===key);
+  const msg = form.querySelector(".msg"); msg.className = "msg"; msg.textContent = "Saving…";
+  const val = n => (form.querySelector(`input[name="${n}-${CSS.escape(key)}"]:checked`)||{}).value || null;
+  const row = {item_key:key, bill_label:item.id, tribal_interest: val("ti") || "unreviewed",
+               consultation: val("co"), public_note: form.public_note.value.trim() || null,
+               reviewed_version: item.version || "title only"};
+  const {data, error} = await state.sb.from("reviews").upsert(row).select();
+  if (error) { msg.className = "msg err"; msg.textContent = "Not saved: " + error.message; return; }
+  const note = form.internal_note.value.trim();
+  if (note) {
+    const n = await state.sb.from("review_notes").insert({item_key:key, note});
+    if (n.error) { msg.className = "msg err"; msg.textContent = "Review saved, note not saved: " + n.error.message; return; }
+    form.internal_note.value = "";
+  }
+  state.reviews[key] = data[0];
+  msg.className = "msg saved"; msg.textContent = "Review saved";
+  loadNotes(form);
+  const sum = form.closest("details").querySelector(".top");
+  const badge = sum.querySelector(".rv"); const tmp = document.createElement("span");
+  tmp.innerHTML = reviewBadge(item); if (badge && tmp.firstChild) badge.replaceWith(tmp.firstChild);
+}
+
+/* ---------- events ---------- */
+document.addEventListener("click", e => {
+  const v = e.target.closest("[data-view]"); if (v) { state.view = v.dataset.view; state.shown = 60; render(); return; }
+  const s = e.target.closest("[data-session]"); if (s) { state.session = s.dataset.session; store.set("bw-session", s.dataset.session); state.shown = 60; load(); return; }
+  if (e.target.id==="signout") { state.sb.auth.signOut().then(checkUser); }
 });
-document.getElementById("q").addEventListener("input", e => { state.q = e.target.value; render(); });
+document.addEventListener("submit", async e => {
+  if (e.target.id==="signin") {
+    e.preventDefault();
+    const email = e.target.email.value.trim();
+    const {error} = await state.sb.auth.signInWithOtp({email, options:{emailRedirectTo: location.origin + location.pathname, shouldCreateUser:true}});
+    renderAccount(error ? "Couldn't send the link: " + error.message : `Check ${email} for a sign-in link.`);
+  } else if (e.target.classList.contains("review")) { e.preventDefault(); saveReview(e.target); }
+});
+document.addEventListener("toggle", e => {
+  const d = e.target; if (!(d instanceof HTMLDetailsElement) || !d.open) return;
+  const form = d.querySelector("form.review"); if (form) loadNotes(form);
+}, true);
+document.getElementById("tag").addEventListener("change", e => { state.tag = e.target.value; state.shown = 60; render(); });
+document.getElementById("q").addEventListener("input", e => { state.q = e.target.value; state.shown = 60; render(); });
 document.getElementById("refresh").addEventListener("click", load);
-window.addEventListener("pagehide", () => {
-  try { if(state.feed) localStorage.setItem("bw-last-visit", state.feed.generated); } catch(e) {}
-});
-if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
-load();
+document.getElementById("more").addEventListener("click", () => { state.shown += 60; render(); });
+window.addEventListener("pagehide", () => { if (state.feed) store.set("bw-last-visit-"+state.session, state.feed.generated); });
+
+if (CFG.supabaseUrl && CFG.supabaseAnonKey && window.supabase) {
+  state.sb = window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey);
+  state.sb.auth.onAuthStateChange(() => checkUser());
+  renderAccount();
+}
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+load().then(() => state.sb && checkUser());
 </script>
 </body>
 </html>

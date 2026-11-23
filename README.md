@@ -1,93 +1,68 @@
 # Montana Bill Watch
 
-Tracks Montana LC draft requests and introduced bills. It screens each one for possible effects on tribal lands, tribal nations, and nearby areas, and writes a digest of new activity for review before alerts go to caucus members.
+Screens every Montana LC draft and bill for **tribal interests** and **tribal consultation**, tags each with **AIGPI Pathways** areas, tracks what amendments change, and gives AIGPI reviewers a place to confirm what goes on the public tracker for the Montana American Indian Caucus.
 
 ## What it does
 
-1. **LC drafts.** It diffs each Bill Explorer CSV export against the last one and records new requests and status changes. When a draft moves into a status where text is likely viewable, the alert says so.
-2. **Introduced bills.** It pulls from the LegiScan API, fetching only bills whose `change_hash` moved. It also downloads each new text version as a PDF, extracts the text, and catches new floor actions and scheduled hearings.
-3. **Screening.** Terms are matched in three tiers set in `config.yaml`:
-   - *direct*: tribes, reservations, ICWA, compacts, and similar
-   - *geographic*: tribal nations and counties overlapping or bordering reservations
-   - *indirect*: topics like water, data centers, mining, hunting, and jurisdiction
+**Collects** from Bill Explorer's own data service (the same one bills.legmt.gov uses): every draft request with its requester, by-request-of, status, and official subjects; draft text once posted; every bill version; fiscal notes; amendments. The Bill Explorer CSV export still works as a fallback.
 
-   LC drafts are screened on their title. Once a draft becomes a bill, the LC and the bill are re-screened on the full text, and the alert notes when a draft moves up a tier.
-4. **Alerts.** Push notifications go out via ntfy, with high priority for direct hits and hearings, and an optional email digest.
-5. **Mobile app.** A home-screen web app in `docs/` lists flagged items with tier filters, search, upcoming hearings, "new since last visit" markers, snippets, and PDF links. It works offline with the last feed.
-6. **Digest.** The digest is grouped by tier, with matched terms, text snippets, status, hearings, and links. It's written as accessible HTML plus plain text, and can optionally be emailed.
+**Screens** each item three ways (all term lists live in `config.yaml`):
 
-## Phone setup (GitHub Actions + Pages + ntfy)
+| Result | How |
+|---|---|
+| **Tribal interests**: likely, possible, or none | Points from: direct tribal terms; Bill Explorer's "Indians" subject code; amending a tribal-related section of the MCA (IEFA, ICWA, water compacts, Hanna's Act, state-tribal relations, and more); geography (reservations, nations, hub cities Missoula, Great Falls, Billings, nearby counties); and, only alongside another signal, creating or changing an agency program, board, rule, or grant, or being requested by an agency. |
+| **Consultation provision**: present, notice only, absent, or unknown | Read sentence by sentence. "Consult with tribes," state-tribal agreements, tribal seats on a board count. The standard "send a copy of [this act] to each tribal government" counts as **notice only**, not consultation. |
+| **Pathways tags** | Tribal consultation; substance misuse and mental health; housing; education; economic development and tourism; law enforcement and criminal justice. |
 
-No server to maintain. GitHub runs the collector every 4 hours, publishes the app, and sends push alerts.
+**The key flag** is *tribal interests likely or possible, but no consultation provision*. Those land in **Needs attention**.
 
-1. **Create a GitHub repository** and upload everything in this folder, including the hidden `.github` folder and `data/billwatch.db`. The database already holds a baseline of the 2027 draft list, so the first run won't flood you with alerts.
-2. **Add secrets** under Settings → Secrets and variables → Actions:
-   - `LEGISCAN_API_KEY`
-   - `BILLWATCH_NTFY_TOPIC`: a long random name such as `mt-billwatch-7f3k9q2x`. Anyone who knows it can subscribe.
-   - optionally `BILLWATCH_SMTP_PASSWORD` and `BILLWATCH_NTFY_TOKEN`
-3. **Turn on Pages** under Settings → Pages: deploy from branch `main`, folder `/docs`. Your app URL will be `https://<user>.github.io/<repo>/`.
-4. **Edit `config.yaml`:** set `push.enabled: true` and `push.app_url` to that URL, so tapping an alert opens the app.
-5. **On each phone:**
-   - Install the ntfy app and subscribe to your topic.
-   - Open the app URL and choose Add to Home Screen (Share menu in Safari, the ⋮ menu in Chrome).
-6. **Run it now:** Actions tab → Bill Watch → Run workflow.
+**Tracks amendments.** Each new version is compared with the last: language added and removed, flags gained or lost, MCA sections added or dropped, and whether consultation language was removed (a priority alert). Revised fiscal notes show which dollar figures changed.
 
-**New draft lists:** upload a fresh Bill Explorer CSV into `data/inbox/` (the GitHub mobile app or website works). That triggers a run right away.
+**AIGPI review.** Reviewers sign in on the app with an email link, then mark each item *confirmed*, *not implicated*, or *not yet reviewed*, and record whether the text has a consultation provision (yes, partial, no). Confirmed items get the **AIGPI tracking** flag. Items amended after review show *Amended since AIGPI review* and return to the queue. Public notes show to everyone; internal notes are reviewers only. Every change is logged.
 
-**Privacy note:** GitHub Pages sites are public, even from a private repo on most plans. The data is public legislative information, but if the caucus would rather keep its flagged list private, host the `docs` folder somewhere with a login instead.
+**Publishes** everything to the app (public, per your choice): views for Needs attention, Tribal interests, AIGPI tracking, Review queue (reviewers only), and All Pathways, plus a 2027/2025 session switch, Pathways filter, and search.
 
-## Local setup
+## Setup
 
-```bash
-pip install -r requirements.txt
-python billwatch.py init
+### 1. GitHub (runs everything, free)
+1. Create a repository and upload this folder, including the hidden `.github` folder and `data/billwatch.db`.
+2. **Settings → Actions → General → Workflow permissions:** Read and write.
+3. **Settings → Pages:** deploy from branch `main`, folder `/docs`. The app is at `https://<user>.github.io/<repo>/`.
+4. **Settings → Secrets and variables → Actions:** add `BILLWATCH_NTFY_TOPIC` (a long random name) for push alerts. `LEGISCAN_API_KEY` is optional now.
+5. **Actions → Bill Watch → Run workflow → run.** The first run loads all current drafts as a baseline (no alert flood) and fetches posted text, up to 600 items per run; the rest come in on the next runs.
+
+### 2. 2025 retrospective
+**Actions → Bill Watch → Run workflow → backfill-2025.** It reads the text of every 2025 bill, then the full version history of those with tribal interests, so you can see where consultation language was added or stripped. Expect an hour or more. The results appear under **2025 session** in the app and in the review queue.
+
+### 3. AIGPI review (Supabase, free tier)
+1. Create a project at supabase.com.
+2. **SQL Editor → New query:** paste `supabase/schema.sql`, add your reviewers' emails on the last lines, and run it.
+3. **Authentication → URL Configuration:** set Site URL to your app URL.
+4. **Project Settings → API:** copy the Project URL and the `anon` public key into `config.yaml` under `review:`. Both are safe to publish; the database rules only let listed reviewers write.
+5. Commit. Reviewers open the app, choose **Reviewer sign in**, and click the emailed link.
+
+To add a reviewer later: Supabase **Table Editor → reviewers → Insert row**.
+
+### 4. Phones
+Install **ntfy** and subscribe to your topic; open the app URL and **Add to Home Screen**. In `config.yaml`, set `push.enabled: true` and `push.app_url`.
+
+## On your own computer
 ```
-
-Get a free LegiScan API key at https://legiscan.com/legiscan, then set it as an environment variable. Don't put it in the config file.
-
-```powershell
-setx LEGISCAN_API_KEY "your-key"            # Windows (open a new terminal afterward)
+python -m pip install -r requirements.txt
+python billwatch.py sync            # pull 2027 drafts and text
+python billwatch.py serve           # open the app at http://localhost:8000
+python billwatch.py report          # every flagged item to a CSV for Excel
 ```
-
-## First run (baseline)
-
-Load the current draft list without generating hundreds of alerts:
-
-```bash
-python billwatch.py ingest-csv Filtered_Bills_2026-11-07.csv --no-alerts
-python billwatch.py report --out flagged_now.csv     # everything currently flagged
-```
-
-## Daily use
-
-1. Export the LC list from Bill Explorer as a CSV.
-2. Drop it into `data/inbox/`.
-3. Run:
-
-```bash
-python billwatch.py run            # inbox CSVs + LegiScan + digest
-python billwatch.py run --send     # same, and email it (email.enabled: true in config)
-```
-
-Digests land in `data/digests/`. PDFs land in `data/texts/`. The app feed is written to `docs/feed.json`, and `python billwatch.py feed` rebuilds it on its own.
-
-**Scheduling on Windows.** In Task Scheduler, create a task that runs `python C:\path\to\billwatch.py run --send` every 4 hours.
-
-## Web interface on your computer
-
-```bash
-python billwatch.py serve
-```
-
-This opens the app at http://localhost:8000 in your browser. It reads straight from `billwatch.db`, so Refresh always shows the latest data. Press Ctrl+C in the terminal to stop it. Only your own computer can reach it.
+Other commands: `backfill --session 2`, `ingest-csv FILE.csv`, `reviews`, `screen`, `digest`, `feed`, `run`.
 
 ## Tuning
-
-Edit the term lists in `config.yaml`, then run `python billwatch.py screen` to re-score everything. Err toward catching too much, since a missed bill costs more than an extra alert.
+Edit term lists in `config.yaml` and commit; the workflow re-scores everything. The MCA list under `amended_law_areas` is a starter set for AIGPI to verify and extend. Err toward catching too much: a missed bill costs more than an extra item in the queue.
 
 ## Known limits
+- Bill Explorer's data service is public but undocumented. If the Legislature changes or blocks it, the run log says so; `legmt.py` is the one file to update, and the CSV export keeps working meanwhile.
+- Screening reads words, not intent. It nominates; AIGPI decides.
+- Scanned PDFs without a text layer can't be read and will screen on title only.
+- When you edit `docs/index.html`, change the `CACHE` name in `docs/sw.js` so phones load the new version.
 
-- **LC draft text** isn't fetched automatically yet. Drafts are screened on title until they become bills. A future step is pulling draft text from Bill Explorer's own backend (find its endpoints in the browser dev tools Network tab).
-- **The CSV export is manual.** Automating it is the same future step.
-- **Keyword screening is a first pass.** Titles like "Generally revise…" hide content. The planned next layer is an LLM read of full text that answers "could this affect tribal lands, members, jurisdiction, water, or resources?" and explains why.
-- **Flags are leads, not conclusions.** A person should review the digest before alerting caucus members.
+## Tests
+`python tests/test_offline.py` runs the whole pipeline against a stand-in Bill Explorer (needs `reportlab`).

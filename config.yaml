@@ -1,114 +1,243 @@
 # Montana Bill Watch configuration
-# Secrets are NOT stored here. Set them as environment variables:
-#   LEGISCAN_API_KEY          - free key from https://legiscan.com/legiscan
+#
+# Secrets are NOT stored here. Set them as environment variables (or GitHub secrets):
+#   LEGISCAN_API_KEY          - optional; adds hearing schedules from LegiScan
 #   BILLWATCH_SMTP_PASSWORD   - only if you want emailed digests
 #   BILLWATCH_NTFY_TOPIC      - push topic (overrides push.topic below)
 #   BILLWATCH_NTFY_TOKEN      - only if your ntfy topic requires login
+#
+# All term lists are case-insensitive regular expressions matched on whole words.
+# "?" makes the letter before it optional (tribes? = tribe or tribes); "|" means "or".
+# Edit freely, then run:  python billwatch.py screen   to re-score everything.
 
 data_dir: data            # SQLite db, downloaded PDFs, digests, CSV inbox
-site_dir: docs            # mobile app + feed.json (GitHub Pages serves /docs)
+site_dir: docs            # the app + feed.json (GitHub Pages serves /docs)
 
-legiscan:
-  state: MT
-  session_id: null        # null = LegiScan's current MT session; run `legiscan-sessions` to list IDs
-  fetch_text: true        # download PDFs for new text versions
-  request_delay: 0.3      # seconds between API calls
+# ---------------------------------------------------------------------------
+# Bill Explorer (the Legislature's own data). Primary source for drafts,
+# draft text, bill versions, amendments, and fiscal notes.
+# ---------------------------------------------------------------------------
+legmt:
+  enabled: true
+  api: https://bearbeta.legmt.gov
+  current_session_id: 3     # 3 = 2027 regular session; 2 = 2025 (use `backfill` for 2025)
+  request_delay: 0.25       # seconds between requests; be polite to the state's servers
+  contact: null             # optional email sent in the User-Agent so the Legislature can reach you
+  fetch_text: true          # download draft text, bill versions, and fiscal notes
+  max_text_per_run: 600     # cap on items whose documents are fetched in one run
 
-# LC statuses where draft text is likely viewable in Bill Explorer.
-# A change INTO one of these creates a "check the text" alert.
+# Draft statuses where LC text is usually posted. A draft entering one of
+# these gets its text fetched and screened.
 text_likely_statuses:
   - Draft Delivered to Requester
   - Draft Ready for Delivery
+  - Draft to Requester for Review
+  - Pre-Introduction Review
+  - Draft in Assembly/Executive Director Review
+  - Draft Taken by Drafter
   - Introduced
-  - Bill Introduced
-  - Chapter Number Assigned
+
+# LegiScan is optional now (Bill Explorer covers bills); it adds hearing calendars.
+legiscan:
+  enabled: false
+  state: MT
+  session_id: null
+  request_delay: 0.3
 
 # ---------------------------------------------------------------------------
-# Screening. Terms are case-insensitive regular expressions matched on word
-# boundaries. Score = sum of tier weights for each distinct term matched.
-# Tune freely: a missed bill costs more than an extra alert.
+# Tribal interests. Each signal adds points; the total sets the verdict:
+#   likely   >= likely_at     possible >= possible_at     otherwise none
+# Agency/program and agency-requester signals only count alongside another
+# signal, because on their own they would flag nearly every bill.
 # ---------------------------------------------------------------------------
-screening:
-  min_score_for_digest: 2
+tribal_interests:
+  likely_at: 10
+  possible_at: 4
+  weights:
+    direct: 10
+    law_area: 10
+    geography: 4
+    agency_program: 3
+    agency_requester: 2
 
-  tiers:
-    direct:
-      weight: 10
-      terms:
-        - tribal
-        - tribes?
-        - tribally
-        - indian
-        - indigenous
-        - native americans?
-        - american indians?
-        - reservations?
-        - (tribal|indian) trust lands?
-        - allotments?|allottees?|fee-to-trust
-        - state-tribal
-        - sovereign(ty)?
-        - ICWA
-        - indian child welfare
-        - indian education for all
-        - tribal colleges?
-        - MMIP|missing (and murdered )?indigenous
-        - water (rights )?compacts?
-        - reserved water rights?
-        - government-to-government
-        - repatriation
-        - burial sites?
-        - sacred sites?
+  direct_terms:
+    - tribes?
+    - tribal(ly)?
+    - tribal governments?
+    - indians?
+    - indigenous
+    - native americans?
+    - american indians?
+    - reservations?
+    - (tribal|indian) trust lands?
+    - allotments?|allottees?|fee-to-trust
+    - state-tribal
+    - tribal liaisons?
+    - government-to-government
+    - sovereign(ty)?
+    - ICWA
+    - indian child welfare
+    - indian education for all|IEFA
+    - tribal colleges?
+    - MMIP|missing (and murdered )?indigenous
+    - hanna'?s act
+    - water (rights )?compacts?
+    - reserved water rights?
+    - native languages?|indian languages?|language immersion
+    - repatriation
+    - (burial|sacred) sites?
 
-    geographic:
-      weight: 5
-      terms:
-        - blackfeet
-        - crow
-        - flathead reservation
-        - salish
-        - kootenai
-        - CSKT
-        - fort belknap
-        - aaniiih|gros ventre
-        - assiniboine
-        - fort peck
-        - sioux
-        - northern cheyenne
-        - rocky boy('?s)?
-        - chippewa
-        - cree
-        - little shell
-        # Counties overlapping or bordering reservations (require "County")
-        - (glacier|pondera|lake|sanders|flathead|blaine|phillips|roosevelt|valley|daniels|sheridan|big horn|yellowstone|treasure|rosebud|hill|chouteau|cascade) county
+  # Bill Explorer's official subject codes that count as a direct signal
+  official_subjects:
+    - Indians
 
-    indirect:
-      weight: 2
-      terms:
-        - water rights?
-        - water use
-        - instream flows?
-        - data centers?
-        - mining|mines?|mineral
-        - oil and gas
-        - pipelines?
-        - transmission lines?
-        - eminent domain
-        - hunting|fishing|trapping
-        - bison|buffalo
-        - wildlife
-        - state trust lands?
-        - jurisdiction
-        - law enforcement
-        - child protective|foster care|child welfare
-        - medicaid
-        - behavioral health
-        - voter id|polling places?|voter registration
-        - school funding|school facilit(y|ies)
-        - broadband
-        - cultural|historic preservation
-        - grazing
-        - consultation
-        - public lands?
+  # Sections of Montana law (MCA). A bill citing any section that starts with
+  # one of these prefixes is flagged as amending that area. Starter list:
+  # AIGPI should verify and extend it.
+  amended_law_areas:
+    - label: State-tribal relations (government-to-government)
+      cites: ["2-15-141", "2-15-142", "2-15-143"]
+    - label: State-Tribal Relations Committee
+      cites: ["5-11-210"]
+    - label: State-tribal cooperative agreements
+      cites: ["18-11-"]
+    - label: Indian Education for All
+      cites: ["20-1-501", "20-9-329", "20-9-330"]
+    - label: Cultural Integrity Commitment Act (language immersion)
+      cites: ["20-7-14"]
+    - label: Montana Indian Language Preservation Program
+      cites: ["20-9-537"]
+    - label: Montana Indian Child Welfare Act
+      cites: ["41-3-13"]
+    - label: MMIP, Hanna's Act, LINC grants
+      cites: ["44-2-407", "44-2-41"]
+    - label: Water compacts
+      cites: ["85-20-"]
+    - label: Reserved Water Rights Compact Commission
+      cites: ["85-2-70"]
+    - label: State-tribal economic development commission
+      cites: ["90-1-13"]
+
+  # Reservations, nations, hub cities, and nearby counties
+  geography_terms:
+    - blackfeet|browning
+    - crow agency|crow (tribe|nation|reservation)|apsáalooke|apsaalooke
+    - flathead reservation|confederated salish|salish|kootenai|pend d'oreille|CSKT|pablo|polson|ronan|st\.? ignatius
+    - fort belknap|aaniiih|gros ventre|nakoda|harlem|hays|lodge pole
+    - assiniboine|fort peck|sioux|poplar|wolf point|frazer
+    - northern cheyenne|lame deer|busby|ashland
+    - rocky boy('?s)?|chippewa cree|box elder
+    - little shell
+    # Hub cities: Missoula (CSKT); Great Falls (Blackfeet, Rocky Boy's, Fort Belknap);
+    # Billings (Fort Peck, Fort Belknap, Northern Cheyenne, Crow)
+    - missoula|great falls|billings|havre|hardin
+    - (missoula|lake|sanders|flathead|glacier|pondera|cascade|hill|chouteau|blaine|phillips|valley|roosevelt|daniels|sheridan|big horn|yellowstone|rosebud|treasure) county
+
+  # Programs, agencies, and resources tribal governments use or are regulated by
+  agency_program_terms:
+    - department of public health and human services|DPHHS
+    - department of justice
+    - board of regents|Montana university system
+    - office of public instruction|superintendent of public instruction
+    - department of corrections
+    - department of commerce
+    - department of (natural resources and conservation|environmental quality|transportation|revenue|labor and industry)
+    - fish, wildlife, and parks
+    - board of (housing|crime control|pardons and parole)
+    - (create|creates|creating|establish|establishes|establishing) (a|an|the) [a-z ,-]{0,40}(program|grant|board|council|commission|task force|account|fund)
+    - grant program
+    - rulemaking authority|adopt rules
+    - medicaid
+    - water rights?|water use|instream flows?
+    - data centers?|mining|oil and gas|pipelines?|transmission lines?|eminent domain
+    - hunting|fishing|bison|wildlife|grazing|public lands?|state trust lands?
+    - jurisdiction|law enforcement
+
+  # Requesters that mark a bill as agency-requested (from Requestor / By Request Of)
+  agency_requesters:
+    - department
+    - office of
+    - board of
+    - commission
+    - agency
+
+# ---------------------------------------------------------------------------
+# Consultation provision. Read sentence by sentence:
+#   strong_terms count anywhere;
+#   near_tribal_terms count only in a sentence that also mentions tribes;
+#   a tribal sentence with a seat term and a body term counts as a tribal seat;
+#   notice_only_terms (e.g. "send a copy of [this act] to each tribal
+#   government") are notice, not consultation, and are reported separately.
+# ---------------------------------------------------------------------------
+consultation:
+  strong_terms:
+    - tribal consultation
+    - consult(s|ed|ing|ation)? with (each |the |all )?(affected )?(tribal|tribes|tribal governments?|indian tribes?|tribal nations?)
+    - government-to-government
+    - state-tribal (agreement|compact|cooperative agreement)s?
+    - (agreements?|compacts?) with (a |the |each )?(tribe|tribal government)s?
+    - tribal (seat|representative|liaison)s?
+  near_tribal_terms:
+    - consult(s|ed|ing|ation)?
+    - in collaboration with|collaborat(e|es|ed|ing) with
+    - coordinat(e|es|ed|ing) with
+    - agreements?|compacts?
+    - input|comment
+  # A seat for tribes on a body: a tribal sentence with a seat term AND a body term
+  seat_terms:
+    - seats?|members?|representatives?|appoint(s|ed|ment)?
+  body_terms:
+    - boards?|councils?|commissions?|committees?|task force|advisory
+  notice_only_terms:
+    - send a copy of \[this act\]
+    - notification to tribal governments
+    - notif(y|ies|ied)|notice
+
+# ---------------------------------------------------------------------------
+# AIGPI Pathways priority areas. A bill gets a tag when a term appears in its
+# title or official subjects, or at least `pathways_text_hits` times in its text.
+# ---------------------------------------------------------------------------
+pathways_text_hits: 2
+pathways:
+  Tribal consultation:
+    - tribes?|tribal governments?
+    - government-to-government
+    - state-tribal relations
+    - tribal liaisons?
+    - notice to tribal governments|notification to tribal governments
+  Substance misuse and mental health:
+    - substance (use|abuse|use disorders?)
+    - addiction|opioids?|fentanyl|methamphetamine|naloxone|overdoses?
+    - treatment courts?|drug courts?
+    - mental health|behavioral health|crisis services?|988|suicide prevention|psychiatric
+    - montana state hospital|BHSFG|behavioral health system for future generations
+  Housing:
+    - housing|affordable housing|homeless(ness)?|rental|landlords?|tenants?|evictions?
+    - zoning|subdivisions?|manufactured homes?|housing authorit(y|ies)|board of housing|housing tax credits?
+  Education:
+    - k-12|school districts?
+    - indian education for all|tribal colleges?|OPI|office of public instruction|board of regents
+    - tuition|fee waivers?|american indian fee waiver
+    - native languages?|language immersion
+    - teacher licensure|graduation
+  Economic development and tourism:
+    - economic development|workforce|small business(es)?
+    - tourism|lodging tax|bed tax|recreation|gaming
+    - tribal business(es)?|indian country economic development
+    - broadband|infrastructure|procurement|tax incentives?
+  Law enforcement and criminal justice:
+    - law enforcement|police|sheriffs?
+    - cross-deputization|concurrent jurisdiction|criminal jurisdiction
+    - MMIP|missing (and murdered )?indigenous|hanna'?s act
+    - detention|corrections|parole|sentencing|bail|warrants?
+
+# ---------------------------------------------------------------------------
+# AIGPI review (optional). Supabase stores reviewer decisions; see README.
+# The URL and anon key are safe to publish: database rules decide who can write.
+# ---------------------------------------------------------------------------
+review:
+  supabase_url: null        # e.g. https://abcdefgh.supabase.co
+  supabase_anon_key: null
 
 # Email digest (optional). Leave enabled: false to just write files.
 email:
@@ -122,10 +251,9 @@ email:
   subject_prefix: "[MT Bill Watch]"
 
 # Push notifications via ntfy (free app for iOS/Android: https://ntfy.sh).
-# Anyone who knows the topic name can subscribe, so make it long and random,
-# or self-host ntfy / use a reserved topic with a token for access control.
+# Anyone who knows the topic name can subscribe, so make it long and random.
 push:
-  enabled: true
+  enabled: false
   server: https://ntfy.sh
   topic: null             # e.g. mt-billwatch-7f3k9q2x (or set BILLWATCH_NTFY_TOPIC)
-  app_url: https://michaelcassens.github.io/MTBills/           # your app URL, e.g. https://<user>.github.io/<repo>/ ; tapping the alert opens it
+  app_url: null           # your app URL, e.g. https://<user>.github.io/<repo>/

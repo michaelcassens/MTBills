@@ -1,32 +1,26 @@
 #!/usr/bin/env python3
 """
-Montana Bill Watch: track LC drafts and introduced bills, screen them for
-possible effects on tribal lands and communities, and produce alert digests.
-
-Sources
-  1. Bill Explorer CSV exports (LC drafts) -> `ingest-csv` diffs each export
-     against what's already stored and records new requests / status changes.
-  2. LegiScan API (introduced bills + full text) -> `legiscan-sync` pulls only
-     bills whose change_hash moved, downloads new text versions, extracts text.
+Montana Bill Watch: track LC drafts and bills, screen them for tribal interests,
+consultation provisions, and AIGPI Pathways areas, track amendments, and publish
+a feed for the Bill Watch app plus push/email alerts.
 
 Usage
   python billwatch.py init
-  python billwatch.py ingest-csv path/to/Filtered_Bills.csv
-  python billwatch.py legiscan-sessions
-  python billwatch.py legiscan-sync
-  python billwatch.py screen            # re-score everything (after editing terms)
-  python billwatch.py digest [--send]   # alerts not yet included in a digest
-  python billwatch.py report            # all flagged items -> CSV
-  python billwatch.py feed              # write docs/feed.json for the mobile app
-  python billwatch.py serve             # open the web interface at http://localhost:8000
-  python billwatch.py run [--send]      # inbox CSVs + LegiScan + digest (for a scheduler)
+  python billwatch.py sync                 # pull drafts, text, versions, fiscal notes from Bill Explorer
+  python billwatch.py backfill --session 2 # load the 2025 session for retrospective AIGPI review
+  python billwatch.py ingest-csv FILE.csv  # fallback if Bill Explorer blocks automated access
+  python billwatch.py reviews              # pull AIGPI review decisions from Supabase
+  python billwatch.py screen               # re-score everything after editing config.yaml
+  python billwatch.py digest [--send]      # alert on new activity
+  python billwatch.py feed                 # write the app feed into docs/
+  python billwatch.py report [--out F]     # flagged items -> CSV
+  python billwatch.py serve                # open the app locally at http://localhost:8000
+  python billwatch.py run [--send]         # everything above in order (for the scheduler)
 """
 import argparse
-import base64
 import csv
 import datetime as dt
 import html
-import io
 import json
 import os
 import re
@@ -34,59 +28,64 @@ import shutil
 import smtplib
 import sqlite3
 import sys
-import time
+import zlib
 from email.message import EmailMessage
 from pathlib import Path
 
 import requests
 import yaml
 
+from analysis import Analyzer, compare_fiscal, compare_versions
+from legmt import LegMT, LegMTError, pdf_to_text, version_name
+
 HERE = Path(__file__).resolve().parent
-LEGISCAN_URL = "https://api.legiscan.com/"
-LC_RE = re.compile(r"\bLC\s?(\d{3,4})\b", re.I)
-LEGISCAN_STATUS = {1: "Introduced", 2: "Engrossed", 3: "Enrolled", 4: "Passed",
-                   5: "Vetoed", 6: "Failed"}
+SESSION_LABELS = {"1": "2023", "2": "2025", "3": "2027", "4": "2029"}
 
 
-# --------------------------------------------------------------------------
-# Setup
-# --------------------------------------------------------------------------
+# --------------------------------------------------------------------------- setup
 def now():
-    """UTC timestamp, so the app shows correct local times wherever the job runs."""
     return dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def load_config(path):
     with open(path, encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
+    base = Path(path).resolve().parent
     data = Path(cfg.get("data_dir", "data"))
-    if not data.is_absolute():
-        data = Path(path).resolve().parent / data
-    cfg["_data"] = data
+    cfg["_data"] = data if data.is_absolute() else base / data
+    site = Path(cfg.get("site_dir", "docs"))
+    cfg["_site"] = site if site.is_absolute() else base / site
     for sub in ("texts", "digests", "inbox", "inbox/processed"):
-        (data / sub).mkdir(parents=True, exist_ok=True)
+        (cfg["_data"] / sub).mkdir(parents=True, exist_ok=True)
+    cfg["_site"].mkdir(parents=True, exist_ok=True)
     return cfg
 
 
 SCHEMA = """
-CREATE TABLE IF NOT EXISTS lc (
-  lc TEXT, session TEXT, title TEXT, requestor TEXT, by_request_of TEXT,
-  status TEXT, status_date TEXT, url TEXT, first_seen TEXT, last_changed TEXT,
-  PRIMARY KEY (lc, session));
-CREATE TABLE IF NOT EXISTS bills (
-  bill_id INTEGER PRIMARY KEY, number TEXT, lc TEXT, title TEXT, description TEXT,
-  status TEXT, last_action TEXT, last_action_date TEXT, sponsors TEXT,
-  state_link TEXT, url TEXT, change_hash TEXT, calendar TEXT,
-  first_seen TEXT, last_changed TEXT);
-CREATE TABLE IF NOT EXISTS bill_texts (
-  doc_id INTEGER PRIMARY KEY, bill_id INTEGER, date TEXT, type TEXT,
-  path TEXT, text TEXT, fetched TEXT);
-CREATE TABLE IF NOT EXISTS flags (
-  item_key TEXT PRIMARY KEY, score INTEGER, tier TEXT, matches TEXT,
-  snippets TEXT, basis TEXT, updated TEXT);
+CREATE TABLE IF NOT EXISTS items (
+  key TEXT PRIMARY KEY, session_id TEXT, lc TEXT, be_id INTEGER, title TEXT,
+  bill_number TEXT, bill_type TEXT, bill_no INTEGER, requester TEXT, requester_type TEXT,
+  by_request_of TEXT, sponsor TEXT, subjects TEXT, status TEXT, status_date TEXT,
+  history TEXT, url TEXT, source TEXT, first_seen TEXT, last_changed TEXT, text_checked TEXT);
+CREATE TABLE IF NOT EXISTS docs (
+  doc_id INTEGER PRIMARY KEY, key TEXT, kind TEXT, version TEXT, file TEXT, date TEXT,
+  url TEXT, path TEXT, text TEXT, fetched TEXT);
+CREATE INDEX IF NOT EXISTS docs_key ON docs(key, kind);
+CREATE TABLE IF NOT EXISTS analysis (
+  key TEXT PRIMARY KEY, tags TEXT, tribal TEXT, tribal_score INTEGER, signals TEXT,
+  consultation TEXT, consultation_evidence TEXT, mca TEXT, basis TEXT, gap INTEGER,
+  text_version TEXT, updated TEXT);
+CREATE TABLE IF NOT EXISTS changes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT, kind TEXT, from_label TEXT, to_label TEXT,
+  summary TEXT, created TEXT);
+CREATE TABLE IF NOT EXISTS reviews (
+  key TEXT PRIMARY KEY, tribal_interest TEXT, consultation TEXT, aigpi_tracking INTEGER,
+  public_note TEXT, reviewer TEXT, reviewed_version TEXT, updated_at TEXT);
+CREATE TABLE IF NOT EXISTS calendar (key TEXT PRIMARY KEY, hearings TEXT, updated TEXT);
+CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT);
 CREATE TABLE IF NOT EXISTS events (
-  id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT, item_key TEXT, kind TEXT,
-  detail TEXT, digested TEXT);
+  id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT, item_key TEXT, kind TEXT, detail TEXT,
+  digested TEXT, priority INTEGER DEFAULT 0);
 """
 
 
@@ -94,69 +93,318 @@ def connect(cfg):
     db = sqlite3.connect(cfg["_data"] / "billwatch.db")
     db.row_factory = sqlite3.Row
     db.executescript(SCHEMA)
-    cols = {r[1] for r in db.execute("PRAGMA table_info(bill_texts)")}
-    if "url" not in cols:
-        db.execute("ALTER TABLE bill_texts ADD COLUMN url TEXT")
+    migrate_v1(db)
     return db
 
 
-def add_event(db, item_key, kind, detail):
-    db.execute("INSERT INTO events (ts,item_key,kind,detail) VALUES (?,?,?,?)",
-               (now(), item_key, kind, detail))
+def migrate_v1(db):
+    """Carry the version 1 database (lc/flags/bills tables) forward."""
+    tables = {r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    ev_cols = {r[1] for r in db.execute("PRAGMA table_info(events)")}
+    if "priority" not in ev_cols:
+        db.execute("ALTER TABLE events ADD COLUMN priority INTEGER DEFAULT 0")
+    if "lc" in tables:
+        db.execute("""INSERT OR IGNORE INTO items (key, session_id, lc, title, requester, by_request_of,
+                      status, status_date, url, source, first_seen, last_changed)
+                      SELECT 'lc:'||session||':'||lc, session, lc, title, requestor, by_request_of,
+                      status, status_date, url, 'csv', first_seen, last_changed FROM lc""")
+        db.execute("DROP TABLE lc")
+    for t in ("flags", "bills", "bill_texts"):
+        if t in tables:
+            db.execute(f"DROP TABLE {t}")
+    db.commit()
 
 
-# --------------------------------------------------------------------------
-# Screening
-# --------------------------------------------------------------------------
-class Screener:
-    def __init__(self, cfg):
-        sc = cfg["screening"]
-        self.min_score = sc.get("min_score_for_digest", 2)
-        self.rules = []  # (tier, weight, label, compiled)
-        for tier, spec in sc["tiers"].items():
-            for term in spec["terms"]:
-                rx = re.compile(r"\b(?:%s)\b" % term, re.I)
-                self.rules.append((tier, spec["weight"], term, rx))
+def add_event(db, key, kind, detail, priority=0):
+    db.execute("INSERT INTO events (ts,item_key,kind,detail,priority) VALUES (?,?,?,?,?)",
+               (now(), key, kind, detail, priority))
 
-    def score(self, text):
-        text = re.sub(r"\s+", " ", text or "")
-        matches, snippets, total, tiers, last_end = [], [], 0, set(), -1
-        for tier, weight, term, rx in self.rules:
-            m = rx.search(text)
-            if not m:
+
+def meta_get(db, k):
+    r = db.execute("SELECT v FROM meta WHERE k=?", (k,)).fetchone()
+    return r["v"] if r else None
+
+
+def meta_set(db, k, v):
+    db.execute("INSERT INTO meta VALUES (?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v", (k, v))
+
+
+def pack(text):
+    """Store document text compressed; bill text is large and the database lives in git."""
+    return zlib.compress((text or "").encode("utf-8"), 9) if text else b""
+
+
+def unpack(blob):
+    if not blob:
+        return ""
+    if isinstance(blob, str):
+        return blob
+    return zlib.decompress(blob).decode("utf-8")
+
+
+def jl(s, default=None):
+    try:
+        return json.loads(s) if s else (default if default is not None else [])
+    except (TypeError, ValueError):
+        return default if default is not None else []
+
+
+# --------------------------------------------------------------------------- screening
+def latest_text(db, key):
+    """Latest bill version if introduced, otherwise latest LC draft text."""
+    for kind in ("version", "lc"):
+        r = db.execute("""SELECT version, text FROM docs WHERE key=? AND kind=? AND length(text) > 0
+                          ORDER BY date DESC LIMIT 1""", (key, kind)).fetchone()
+        if r:
+            return unpack(r["text"]), (r["version"] if kind == "version" else "LC draft")
+    return None, None
+
+
+def screen_item(db, an, key):
+    it = db.execute("SELECT * FROM items WHERE key=?", (key,)).fetchone()
+    if not it:
+        return None
+    text, ver = latest_text(db, key)
+    r = an.analyze(it["title"], text, jl(it["subjects"]), it["requester"], it["by_request_of"])
+    old = db.execute("SELECT * FROM analysis WHERE key=?", (key,)).fetchone()
+    db.execute("""INSERT INTO analysis VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+                  ON CONFLICT(key) DO UPDATE SET tags=excluded.tags, tribal=excluded.tribal,
+                  tribal_score=excluded.tribal_score, signals=excluded.signals,
+                  consultation=excluded.consultation, consultation_evidence=excluded.consultation_evidence,
+                  mca=excluded.mca, basis=excluded.basis, gap=excluded.gap,
+                  text_version=excluded.text_version, updated=excluded.updated""",
+               (key, json.dumps(r["tags"]), r["tribal"], r["tribal_score"], json.dumps(r["signals"]),
+                r["consultation"], json.dumps(r["consultation_evidence"]), json.dumps(r["mca"]),
+                r["basis"], int(r["gap"]), ver, now()))
+    rank = {"none": 0, "possible": 1, "likely": 2}
+    if r["tribal"] != "none" and (old is None or rank[r["tribal"]] > rank.get(old["tribal"], 0)):
+        add_event(db, key, "flagged", f"Tribal interests {r['tribal']} ({r['basis']})", 1 if r["tribal"] == "likely" else 0)
+    if r["gap"] and r["basis"] == "full text" and (old is None or not old["gap"] or old["basis"] != "full text"):
+        add_event(db, key, "gap", "Text has no tribal consultation provision"
+                  + (" (notice only)" if r["consultation"] == "notice only" else ""), 1)
+    return r
+
+
+def rescreen(cfg, session=None):
+    db, an = connect(cfg), Analyzer(cfg)
+    q, args = "SELECT key FROM items", ()
+    if session:
+        q, args = q + " WHERE session_id=?", (str(session),)
+    keys = [r["key"] for r in db.execute(q, args)]
+    for k in keys:
+        screen_item(db, an, k)
+    db.commit()
+    print(f"Re-screened {len(keys)} items")
+
+
+# --------------------------------------------------------------------------- Bill Explorer sync
+def upsert_item(db, cfg, n, source="legmt"):
+    """Store one normalized record; return (key, what_changed)."""
+    key = f"lc:{n['session_id']}:{n['lc']}"
+    url = LegMT.explorer_url(n["session_id"], n["lc"], bool(n["bill_number"]))
+    cur = db.execute("SELECT * FROM items WHERE key=?", (key,)).fetchone()
+    vals = dict(session_id=str(n["session_id"]), lc=n["lc"], be_id=n.get("be_id"), title=n["title"],
+                bill_number=n.get("bill_number"), bill_type=n.get("bill_type"), bill_no=n.get("bill_no"),
+                requester=n.get("requester", ""), requester_type=n.get("requester_type"),
+                by_request_of=n.get("by_request_of", ""), sponsor=n.get("sponsor", ""),
+                subjects=json.dumps(n.get("subjects") or []), status=n["status"],
+                status_date=n.get("status_date"), history=json.dumps(n.get("history") or []),
+                url=url, source=source)
+    if cur is None:
+        cols = ",".join(["key"] + list(vals) + ["first_seen", "last_changed"])
+        db.execute(f"INSERT INTO items ({cols}) VALUES ({','.join('?' * (len(vals) + 3))})",
+                   [key] + list(vals.values()) + [now(), now()])
+        what = "introduced" if n.get("bill_number") else "new"
+        add_event(db, key, "new_request" if what == "new" else "introduced",
+                  f"New draft request: {n['title']}" if what == "new"
+                  else f"{n['bill_number']} introduced: {n['title']}")
+        return key, what
+    changed = None
+    if n.get("bill_number") and not cur["bill_number"]:
+        add_event(db, key, "introduced", f"Introduced as {n['bill_number']}", 1)
+        changed = "introduced"
+    elif cur["status"] != n["status"]:
+        add_event(db, key, "status_change", f"{cur['status']} → {n['status']}")
+        changed = "status"
+    # keep names from a richer source (CSV has requester names even if a lookup failed)
+    for f in ("requester", "by_request_of", "sponsor"):
+        if not vals[f] and cur[f]:
+            vals[f] = cur[f]
+    sets = ",".join(f"{k}=?" for k in vals) + (",last_changed=?" if changed else "")
+    db.execute(f"UPDATE items SET {sets} WHERE key=?",
+               list(vals.values()) + ([now()] if changed else []) + [key])
+    return key, changed
+
+
+def store_doc(cfg, db, api, key, kind, doc, label):
+    raw = api.content(doc["doc_id"])
+    safe = re.sub(r"[^\w.()-]", "_", doc["file"] or f"{doc['doc_id']}.pdf")
+    p = cfg["_data"] / "texts" / f"{key.replace(':', '_')}__{kind}__{safe}"
+    p.write_bytes(raw)
+    text = pdf_to_text(raw)
+    db.execute("INSERT OR REPLACE INTO docs VALUES (?,?,?,?,?,?,?,?,?,?)",
+               (doc["doc_id"], key, kind, label, doc["file"], doc["date"], doc["url"], str(p), pack(text), now()))
+    return text
+
+
+def fetch_documents(cfg, db, api, an, key):
+    """Pull new LC text, bill versions, fiscal notes, and amendments; record what changed."""
+    it = db.execute("SELECT * FROM items WHERE key=?", (key,)).fetchone()
+    sid = it["session_id"]
+    have = {r["doc_id"] for r in db.execute("SELECT doc_id FROM docs WHERE key=?", (key,))}
+    prior_versions = db.execute("SELECT version, text FROM docs WHERE key=? AND kind IN ('lc','version') "
+                                "AND length(text) > 0 ORDER BY date", (key,)).fetchall()
+    prev_text = unpack(prior_versions[-1]["text"]) if prior_versions else None
+    prev_label = prior_versions[-1]["version"] if prior_versions else None
+    new_text = False
+
+    def record_version(text, label, title):
+        nonlocal prev_text, prev_label, new_text
+        new_text = True
+        if prev_text:
+            ch = compare_versions(an, prev_text, text, prev_label, label, it["title"])
+            db.execute("INSERT INTO changes (key,kind,from_label,to_label,summary,created) VALUES (?,?,?,?,?,?)",
+                       (key, "version", prev_label, label, json.dumps(ch), now()))
+            bits = [f"{ch['n_added']} passages added, {ch['n_removed']} removed"]
+            if ch["consultation_change"]:
+                bits.append(f"consultation {ch['consultation_change']}")
+            if ch["tribal_change"]:
+                bits.append(f"tribal interests {ch['tribal_change']}")
+            add_event(db, key, "amended", f"{title}: " + "; ".join(bits), 2 if ch["consultation_removed"] else 0)
+            if ch["consultation_removed"]:
+                add_event(db, key, "consultation_removed",
+                          f"Consultation language removed between {prev_label} and {label}", 2)
+        else:
+            add_event(db, key, "new_text", f"{title} posted")
+        prev_text, prev_label = text, label
+
+    if it["bill_number"]:
+        for d in api.bill_versions(sid, it["bill_type"], it["bill_no"]):
+            if d["doc_id"] in have:
                 continue
-            matches.append({"tier": tier, "term": m.group(0)})
-            total += weight
-            tiers.add(tier)
-            if len(snippets) < 4 and len(text) > 200 and m.start() > last_end:  # full text only
-                a, b = max(0, m.start() - 110), min(len(text), m.end() + 110)
-                last_end = b
-                snippets.append(("…" if a else "") + text[a:b] + ("…" if b < len(text) else ""))
-        tier = next((t for t in ("direct", "geographic", "indirect") if t in tiers), None)
-        return total, tier, matches, snippets
+            label = version_name(d["version"])
+            text = store_doc(cfg, db, api, key, "version", d, label)
+            if text:
+                record_version(text, label, f"New text: {label}")
+        fiscal = db.execute("SELECT version, text FROM docs WHERE key=? AND kind='fiscal' ORDER BY date",
+                            (key,)).fetchall()
+        for d in api.fiscal_notes(sid, it["bill_type"], it["bill_no"]):
+            if d["doc_id"] in have:
+                continue
+            label = f"Fiscal note {d['version']}"
+            text = store_doc(cfg, db, api, key, "fiscal", d, label)
+            if fiscal and text:
+                ch = compare_fiscal(unpack(fiscal[-1]["text"]), text, fiscal[-1]["version"], label)
+                db.execute("INSERT INTO changes (key,kind,from_label,to_label,summary,created) VALUES (?,?,?,?,?,?)",
+                           (key, "fiscal", fiscal[-1]["version"], label, json.dumps(ch), now()))
+                amt = ", ".join(ch["amounts_added"][:4])
+                add_event(db, key, "fiscal", f"Revised {label.lower()}" + (f" (new figures: {amt})" if amt else ""))
+            else:
+                add_event(db, key, "fiscal", f"{label} posted")
+            fiscal = list(fiscal) + [{"version": label, "text": pack(text)}]
+        for d in api.amendments(sid, it["bill_type"], it["bill_no"]):
+            if d["doc_id"] in have:
+                continue
+            db.execute("INSERT OR REPLACE INTO docs VALUES (?,?,?,?,?,?,?,?,?,?)",
+                       (d["doc_id"], key, "amendment", None, d["file"], d["date"], d["url"], None, b"", now()))
+            add_event(db, key, "amendment", f"Amendment filed: {d['file']}")
+    else:
+        for d in api.lc_text_docs(sid, it["lc"])[-1:]:
+            if d["doc_id"] in have:
+                continue
+            text = store_doc(cfg, db, api, key, "lc", d, "LC draft")
+            if text:
+                record_version(text, "LC draft", "Draft text")
+    db.execute("UPDATE items SET text_checked=? WHERE key=?", (now(), key))
+    return new_text
 
 
-def screen_item(db, scr, item_key, title, full_text=None):
-    basis = "full text" if full_text else "title only"
-    score, tier, matches, snippets = scr.score(" ".join(filter(None, [title, full_text])))
-    old = db.execute("SELECT score, tier FROM flags WHERE item_key=?", (item_key,)).fetchone()
-    db.execute("""INSERT INTO flags VALUES (?,?,?,?,?,?,?)
-                  ON CONFLICT(item_key) DO UPDATE SET score=excluded.score,
-                  tier=excluded.tier, matches=excluded.matches,
-                  snippets=excluded.snippets, basis=excluded.basis, updated=excluded.updated""",
-               (item_key, score, tier, json.dumps(matches), json.dumps(snippets), basis, now()))
-    rank = {"direct": 3, "geographic": 2, "indirect": 1, None: 0}
-    if score >= scr.min_score:
-        if old is None or old["score"] < scr.min_score:
-            add_event(db, item_key, "flagged", f"Matched {tier} terms ({basis})")
-        elif rank[tier] > rank[old["tier"]]:
-            add_event(db, item_key, "flagged", f"Now matches {tier} terms ({basis})")
-    return score
+def legmt_sync(cfg, session_id=None, api=None, quiet=False, text_for="changed", max_text=None):
+    """text_for: 'changed' (new/changed items in text-likely statuses), 'introduced' (all bills), or 'none'."""
+    api = api or LegMT(cfg)
+    db, an = connect(cfg), Analyzer(cfg)
+    sid = str(session_id or cfg["legmt"].get("current_session_id", 3))
+    first = meta_get(db, f"legmt_synced:{sid}") is None
+    likely = {s.lower() for s in cfg.get("text_likely_statuses", [])}
+    raws = api.all_items(sid)
+    print(f"Bill Explorer: {len(raws)} drafts and bills in session {SESSION_LABELS.get(sid, sid)}")
+    todo = []
+    for raw in raws:
+        n = api.normalize(raw)
+        if not n["lc"]:
+            continue
+        key, what = upsert_item(db, cfg, n)
+        it = db.execute("SELECT bill_number, status, text_checked FROM items WHERE key=?", (key,)).fetchone()
+        wants = (it["bill_number"] or it["status"].lower() in likely)
+        if text_for == "introduced":
+            wants = bool(it["bill_number"]) and not it["text_checked"]
+        elif text_for == "changed":
+            wants = wants and (what or not it["text_checked"])
+        else:
+            wants = False
+        if wants:
+            todo.append(key)
+        else:
+            screen_item(db, an, key)
+    db.commit()
+
+    limit = max_text if max_text is not None else cfg["legmt"].get("max_text_per_run", 600)
+    if cfg["legmt"].get("fetch_text", True) and todo:
+        print(f"Fetching documents for {min(len(todo), limit)} of {len(todo)} items")
+        for i, key in enumerate(todo[:limit], 1):
+            try:
+                fetch_documents(cfg, db, api, an, key)
+            except LegMTError:
+                raise
+            except Exception as e:  # noqa: BLE001 - one bad PDF shouldn't stop the run
+                print(f"  ! {key}: {e}")
+            screen_item(db, an, key)
+            if i % 25 == 0:
+                db.commit()
+                print(f"  …{i}")
+        for key in todo[limit:]:
+            screen_item(db, an, key)
+        if len(todo) > limit:
+            print(f"  {len(todo) - limit} left for the next run")
+    db.commit()
+    if first or quiet:
+        n = db.execute("UPDATE events SET digested='baseline' WHERE digested IS NULL AND item_key LIKE ?",
+                       (f"lc:{sid}:%",)).rowcount
+        print(f"Baseline load: {n} events recorded without alerts")
+    meta_set(db, f"legmt_synced:{sid}", now())
+    db.commit()
 
 
-# --------------------------------------------------------------------------
-# Source 1: Bill Explorer CSV exports (LC drafts)
-# --------------------------------------------------------------------------
+def backfill(cfg, session_id, api=None, limit=None):
+    """Load a past session for retrospective review: latest text of every introduced bill,
+    then the full version history (and amendment diffs) for bills with tribal interests."""
+    api = api or LegMT(cfg)
+    legmt_sync(cfg, session_id, api=api, quiet=True, text_for="none")
+    db, an = connect(cfg), Analyzer(cfg)
+    bills = [r["key"] for r in db.execute(
+        "SELECT key FROM items WHERE session_id=? AND bill_number IS NOT NULL AND text_checked IS NULL",
+        (str(session_id),))][: limit or None]
+    print(f"Backfill: fetching text for {len(bills)} introduced bills (this can take a while)")
+    for i, key in enumerate(bills, 1):
+        try:
+            fetch_documents(cfg, db, api, an, key)
+        except LegMTError:
+            raise
+        except Exception as e:  # noqa: BLE001
+            print(f"  ! {key}: {e}")
+        screen_item(db, an, key)
+        if i % 25 == 0:
+            db.commit()
+            print(f"  …{i}/{len(bills)}")
+    db.execute("UPDATE events SET digested='baseline' WHERE digested IS NULL AND item_key LIKE ?",
+               (f"lc:{session_id}:%",))
+    db.commit()
+    n = db.execute("SELECT COUNT(*) FROM analysis a JOIN items i ON i.key=a.key "
+                   "WHERE i.session_id=? AND a.tribal!='none'", (str(session_id),)).fetchone()[0]
+    print(f"Backfill done: {n} items with tribal interests are now in the review queue")
+
+
+# --------------------------------------------------------------------------- CSV fallback
 def norm_date(v):
     v = (v or "").strip()
     for fmt in ("%m/%d/%y", "%m/%d/%Y", "%Y-%m-%d", "%Y-%m-%d %H:%M:%S"):
@@ -164,18 +412,11 @@ def norm_date(v):
             return dt.datetime.strptime(v, fmt).date().isoformat()
         except ValueError:
             pass
-    if v.replace(".", "").isdigit():  # Excel serial date
-        return (dt.date(1899, 12, 30) + dt.timedelta(days=int(float(v)))).isoformat()
     return v
 
 
-def clean_status(s):
-    return re.sub(r"^\(LC\)\s*", "", (s or "").strip())
-
-
 def ingest_csv(cfg, path, quiet=False):
-    db, scr = connect(cfg), Screener(cfg)
-    likely = {s.lower() for s in cfg.get("text_likely_statuses", [])}
+    db, an = connect(cfg), Analyzer(cfg)
     with open(path, newline="", encoding="utf-8-sig") as f:
         rows = list(csv.DictReader(f))
     new = changed = 0
@@ -183,272 +424,267 @@ def ingest_csv(cfg, path, quiet=False):
         lc = (r.get("LC #") or "").strip().upper()
         if not lc:
             continue
-        url = (r.get("LC URL") or "").strip()
-        m = re.search(r"/bill/(\d+)/", url)
-        session = m.group(1) if m else "unknown"
-        title = (r.get("Short Title") or "").strip()
-        status = clean_status(r.get("Status"))
-        key = f"lc:{session}:{lc}"
-        cur = db.execute("SELECT status FROM lc WHERE lc=? AND session=?", (lc, session)).fetchone()
-        vals = (title, (r.get("Requestor") or "").strip(), (r.get("By Request Of") or "").strip(),
-                status, norm_date(r.get("Status Date")), url)
-        if cur is None:
-            db.execute("INSERT INTO lc VALUES (?,?,?,?,?,?,?,?,?,?)",
-                       (lc, session) + vals + (now(), now()))
-            add_event(db, key, "new_request", f"New draft request: {title}")
-            new += 1
-        elif cur["status"] != status:
-            db.execute("""UPDATE lc SET title=?,requestor=?,by_request_of=?,status=?,
-                          status_date=?,url=?,last_changed=? WHERE lc=? AND session=?""",
-                       vals + (now(), lc, session))
-            note = " (text may now be viewable)" if status.lower() in likely else ""
-            add_event(db, key, "status_change", f"{cur['status']} → {status}{note}")
-            changed += 1
-        else:
-            continue
-        screen_item(db, scr, key, title, linked_bill_text(db, lc))
+        m = re.search(r"/bill/(\d+)/", r.get("LC URL") or "")
+        bill = (r.get("Bill #") or r.get("Bill") or "").strip() or None
+        bm = re.match(r"([A-Z]+)\s*(\d+)", bill or "")
+        n = {"session_id": m.group(1) if m else cfg["legmt"].get("current_session_id", 3), "lc": lc,
+             "title": (r.get("Short Title") or "").strip(),
+             "bill_number": f"{bm.group(1)} {bm.group(2)}" if bm else None,
+             "bill_type": bm.group(1) if bm else None, "bill_no": int(bm.group(2)) if bm else None,
+             "requester": (r.get("Requestor") or "").strip(),
+             "by_request_of": (r.get("By Request Of") or "").strip(),
+             "sponsor": (r.get("Primary Sponsor") or "").strip(),
+             "status": re.sub(r"^\((LC|H|S)\)\s*", "", (r.get("Status") or "").strip()),
+             "status_date": norm_date(r.get("Status Date"))}
+        key, what = upsert_item(db, cfg, n, source="csv")
+        new += what in ("new", "introduced") and 1 or 0
+        changed += what in ("status",) and 1 or 0
+        screen_item(db, an, key)
     db.commit()
     if not quiet:
         print(f"{path}: {len(rows)} rows, {new} new, {changed} status changes")
-    return new, changed
 
 
-def linked_bill_text(db, lc):
-    """If LegiScan has the introduced bill for this LC, screen on its text too."""
-    row = db.execute("""SELECT group_concat(t.text, ' ') AS txt FROM bills b
-                        JOIN bill_texts t ON t.bill_id=b.bill_id WHERE b.lc=?""", (lc,)).fetchone()
-    return row["txt"] if row and row["txt"] else None
+# --------------------------------------------------------------------------- LegiScan (optional hearings)
+def legiscan_calendar(cfg):
+    key = os.environ.get("LEGISCAN_API_KEY")
+    if not key or not cfg.get("legiscan", {}).get("enabled"):
+        return
+    db = connect(cfg)
+    s = requests.Session()
 
-
-# --------------------------------------------------------------------------
-# Source 2: LegiScan (introduced bills + text)
-# --------------------------------------------------------------------------
-class LegiScan:
-    def __init__(self, cfg):
-        self.key = os.environ.get("LEGISCAN_API_KEY")
-        if not self.key:
-            sys.exit("Set the LEGISCAN_API_KEY environment variable first.")
-        self.delay = cfg["legiscan"].get("request_delay", 0.3)
-        self.s = requests.Session()
-
-    def get(self, op, **params):
-        time.sleep(self.delay)
-        r = self.s.get(LEGISCAN_URL, params={"key": self.key, "op": op, **params}, timeout=60)
+    def call(op, **p):
+        r = s.get("https://api.legiscan.com/", params={"key": key, "op": op, **p}, timeout=60)
         r.raise_for_status()
-        data = r.json()
-        if data.get("status") != "OK":
-            raise RuntimeError(f"LegiScan {op} error: {data.get('alert', data)}")
-        return data
+        j = r.json()
+        if j.get("status") != "OK":
+            raise RuntimeError(j)
+        return j
 
-
-def legiscan_sessions(cfg):
-    ls = LegiScan(cfg)
-    for s in ls.get("getSessionList", state=cfg["legiscan"]["state"])["sessions"]:
-        print(f"{s['session_id']:>6}  {s['session_name']}")
-
-
-def pdf_to_text(raw):
-    from pypdf import PdfReader
-    try:
-        return "\n".join((p.extract_text() or "") for p in PdfReader(io.BytesIO(raw)).pages)
-    except Exception as e:  # noqa: BLE001
-        print(f"  ! could not extract text: {e}")
-        return ""
-
-
-def fetch_doc(ls, doc):
-    """Try the state's own download link first (saves API quota), then LegiScan."""
-    link = doc.get("state_link")
-    if link:
-        try:
-            r = ls.s.get(link, timeout=60)
-            if r.ok and r.content[:4] == b"%PDF":
-                return r.content
-        except requests.RequestException:
-            pass
-    data = ls.get("getBillText", id=doc["doc_id"])["text"]
-    return base64.b64decode(data["doc"])
-
-
-def legiscan_sync(cfg, ls=None):
-    ls = ls or LegiScan(cfg)
-    db, scr = connect(cfg), Screener(cfg)
     lcfg = cfg["legiscan"]
-    params = {"state": lcfg["state"]}
-    if lcfg.get("session_id"):
-        params = {"id": lcfg["session_id"]}
-    master = ls.get("getMasterListRaw", **params)["masterlist"]
-    items = [v for v in master.values() if isinstance(v, dict) and "bill_id" in v]
-    known = {r["bill_id"]: r["change_hash"] for r in db.execute("SELECT bill_id, change_hash FROM bills")}
-    todo = [i for i in items if known.get(i["bill_id"]) != i["change_hash"]]
-    print(f"LegiScan: {len(items)} bills in session, {len(todo)} new or changed")
-
-    for n, item in enumerate(todo, 1):
-        b = ls.get("getBill", id=item["bill_id"])["bill"]
-        m = LC_RE.search(b.get("state_link") or "")
-        lc = f"LC{int(m.group(1)):04d}" if m else None
-        hist = b.get("history") or []
-        last = hist[-1] if hist else {}
-        status = LEGISCAN_STATUS.get(b.get("status"), str(b.get("status")))
-        cal = [c for c in (b.get("calendar") or []) if c.get("date", "") >= dt.date.today().isoformat()]
-        row = (b["bill_id"], b.get("bill_number"), lc, b.get("title"), b.get("description"), status,
-               last.get("action"), last.get("date"),
-               ", ".join(s.get("name", "") for s in b.get("sponsors") or []),
-               b.get("state_link"), b.get("url"), item["change_hash"], json.dumps(cal))
-        key = f"bill:{b['bill_id']}"
-        prev = db.execute("SELECT last_action, calendar FROM bills WHERE bill_id=?", (b["bill_id"],)).fetchone()
-        db.execute("""INSERT INTO bills VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-                      ON CONFLICT(bill_id) DO UPDATE SET number=excluded.number, lc=excluded.lc,
-                      title=excluded.title, description=excluded.description, status=excluded.status,
-                      last_action=excluded.last_action, last_action_date=excluded.last_action_date,
-                      sponsors=excluded.sponsors, state_link=excluded.state_link, url=excluded.url,
-                      change_hash=excluded.change_hash, calendar=excluded.calendar,
-                      last_changed=excluded.last_changed""", row + (now(), now()))
-        if prev is None:
-            add_event(db, key, "introduced", f"{b.get('bill_number')} introduced: {b.get('title')}")
-        else:
-            if last.get("action") and last.get("action") != prev["last_action"]:
-                add_event(db, key, "action", f"{last.get('date')}: {last.get('action')}")
-            if json.dumps(cal) != prev["calendar"] and cal:
+    params = {"id": lcfg["session_id"]} if lcfg.get("session_id") else {"state": lcfg.get("state", "MT")}
+    master = call("getMasterListRaw", **params)["masterlist"]
+    seen = jl(meta_get(db, "legiscan_hashes"), {})
+    sid = str(cfg["legmt"].get("current_session_id", 3))
+    for v in master.values():
+        if not isinstance(v, dict) or "bill_id" not in v or seen.get(str(v["bill_id"])) == v["change_hash"]:
+            continue
+        b = call("getBill", id=v["bill_id"])["bill"]
+        m = re.search(r"LC\s?(\d{3,4})", b.get("state_link") or "", re.I)
+        if m:
+            k = f"lc:{sid}:LC{int(m.group(1)):04d}"
+            cal = [c for c in b.get("calendar") or [] if (c.get("date") or "") >= dt.date.today().isoformat()]
+            old = db.execute("SELECT hearings FROM calendar WHERE key=?", (k,)).fetchone()
+            if cal and (not old or old["hearings"] != json.dumps(cal)):
                 c = cal[0]
-                add_event(db, key, "hearing",
-                          f"Scheduled {c.get('type','')}: {c.get('date')} {c.get('time','')} "
-                          f"{c.get('location','')}".strip())
-
-        if lcfg.get("fetch_text", True):
-            have = {r["doc_id"] for r in db.execute("SELECT doc_id FROM bill_texts WHERE bill_id=?", (b["bill_id"],))}
-            for doc in b.get("texts") or []:
-                if doc["doc_id"] in have:
-                    continue
-                try:
-                    raw = fetch_doc(ls, doc)
-                except Exception as e:  # noqa: BLE001
-                    print(f"  ! {b.get('bill_number')} doc {doc['doc_id']}: {e}")
-                    continue
-                fname = f"{b.get('bill_number')}_{doc.get('type','text')}_{doc['doc_id']}.pdf".replace(" ", "")
-                p = cfg["_data"] / "texts" / fname
-                p.write_bytes(raw)
-                db.execute("""INSERT OR REPLACE INTO bill_texts
-                              (doc_id,bill_id,date,type,path,text,fetched,url) VALUES (?,?,?,?,?,?,?,?)""",
-                           (doc["doc_id"], b["bill_id"], doc.get("date"), doc.get("type"),
-                            str(p), pdf_to_text(raw), now(), doc.get("state_link") or doc.get("url")))
-                if prev is not None:
-                    add_event(db, key, "new_text", f"New text version: {doc.get('type')} ({doc.get('date')})")
-
-        full = linked_bill_text(db, lc) if lc else None
-        if not full:
-            t = db.execute("SELECT group_concat(text,' ') AS t FROM bill_texts WHERE bill_id=?", (b["bill_id"],)).fetchone()
-            full = t["t"] if t else None
-        screen_item(db, scr, key, f"{b.get('title')} {b.get('description') or ''}", full)
-        if lc:  # re-screen the matching LC draft with the bill text
-            for s in db.execute("SELECT session, title FROM lc WHERE lc=?", (lc,)).fetchall():
-                screen_item(db, scr, f"lc:{s['session']}:{lc}", s["title"], full)
-        db.commit()
-        if n % 25 == 0:
-            print(f"  …{n}/{len(todo)}")
+                add_event(db, k, "hearing", f"Hearing scheduled: {c.get('date')} {c.get('time', '')} "
+                                            f"{c.get('location', '')}".strip(), 1)
+            db.execute("INSERT OR REPLACE INTO calendar VALUES (?,?,?)", (k, json.dumps(cal), now()))
+        seen[str(v["bill_id"])] = v["change_hash"]
+    meta_set(db, "legiscan_hashes", json.dumps(seen))
     db.commit()
 
 
-def rescreen(cfg):
-    db, scr = connect(cfg), Screener(cfg)
+# --------------------------------------------------------------------------- AIGPI reviews
+def pull_reviews(cfg):
+    rc = cfg.get("review") or {}
+    if not rc.get("supabase_url") or not rc.get("supabase_anon_key"):
+        return
+    db = connect(cfg)
+    hdr = {"apikey": rc["supabase_anon_key"], "Authorization": f"Bearer {rc['supabase_anon_key']}"}
+    try:
+        r = requests.get(rc["supabase_url"].rstrip("/") + "/rest/v1/reviews?select=*", headers=hdr, timeout=60)
+        r.raise_for_status()
+    except requests.RequestException as e:
+        print(f"Could not read reviews: {e}")
+        return
     n = 0
-    for r in db.execute("SELECT lc, session, title FROM lc").fetchall():
-        screen_item(db, scr, f"lc:{r['session']}:{r['lc']}", r["title"], linked_bill_text(db, r["lc"]))
-        n += 1
-    for r in db.execute("SELECT bill_id, title, description FROM bills").fetchall():
-        t = db.execute("SELECT group_concat(text,' ') AS t FROM bill_texts WHERE bill_id=?", (r["bill_id"],)).fetchone()
-        screen_item(db, scr, f"bill:{r['bill_id']}", f"{r['title']} {r['description'] or ''}", t["t"])
+    for rv in r.json():
+        old = db.execute("SELECT * FROM reviews WHERE key=?", (rv["item_key"],)).fetchone()
+        if old and old["updated_at"] == rv.get("updated_at"):
+            continue
+        db.execute("INSERT OR REPLACE INTO reviews VALUES (?,?,?,?,?,?,?,?)",
+                   (rv["item_key"], rv.get("tribal_interest"), rv.get("consultation"),
+                    int(bool(rv.get("aigpi_tracking"))), rv.get("public_note"), rv.get("reviewer_email"),
+                    rv.get("reviewed_version"), rv.get("updated_at")))
+        if rv.get("tribal_interest") == "confirmed" and (not old or old["tribal_interest"] != "confirmed"):
+            c = {"no": "no consultation provision", "partial": "partial consultation provision",
+                 "yes": "has a consultation provision"}.get(rv.get("consultation"), "consultation not yet assessed")
+            add_event(db, rv["item_key"], "aigpi_confirmed", f"AIGPI confirmed tribal interests; {c}",
+                      2 if rv.get("consultation") in ("no", "partial") else 1)
         n += 1
     db.commit()
-    print(f"Re-screened {n} items")
+    print(f"Reviews: {n} new or updated")
 
 
-# --------------------------------------------------------------------------
-# Output: digest + report
-# --------------------------------------------------------------------------
-def describe(db, key):
-    if key.startswith("lc:"):
-        _, session, lc = key.split(":")
-        r = db.execute("SELECT * FROM lc WHERE lc=? AND session=?", (lc, session)).fetchone()
-        b = db.execute("SELECT number FROM bills WHERE lc=?", (lc,)).fetchone()
-        return {"id": lc + (f" / {b['number']}" if b else ""), "title": r["title"],
-                "who": r["requestor"], "status": r["status"], "link": r["url"],
-                "link_text": f"Open {lc} in Bill Explorer", "pdfs": []}
-    r = db.execute("SELECT * FROM bills WHERE bill_id=?", (int(key.split(":")[1]),)).fetchone()
-    texts = db.execute("SELECT path, url, type FROM bill_texts WHERE bill_id=? ORDER BY date", (r["bill_id"],)).fetchall()
-    pdfs = [t["path"] for t in texts]
-    return {"id": r["number"] + (f" ({r['lc']})" if r["lc"] else ""), "title": r["title"],
-            "who": r["sponsors"], "status": f"{r['status']}: {r['last_action'] or ''}",
-            "link": r["state_link"] or r["url"], "link_text": f"Open {r['number']} in Bill Explorer",
-            "pdfs": pdfs, "calendar": json.loads(r["calendar"] or "[]"),
-            "text_url": next((t["url"] for t in reversed(texts) if t["url"]), None),
-            "text_type": texts[-1]["type"] if texts else None}
+# --------------------------------------------------------------------------- describing items
+def item_record(db, key, full=True):
+    it = db.execute("SELECT * FROM items WHERE key=?", (key,)).fetchone()
+    a = db.execute("SELECT * FROM analysis WHERE key=?", (key,)).fetchone()
+    rv = db.execute("SELECT * FROM reviews WHERE key=?", (key,)).fetchone()
+    rec = {
+        "key": key, "session": it["session_id"], "lc": it["lc"], "bill": it["bill_number"],
+        "id": f"{it['bill_number']} ({it['lc']})" if it["bill_number"] else it["lc"],
+        "title": it["title"], "requester": it["requester"], "by_request_of": it["by_request_of"],
+        "sponsor": it["sponsor"], "subjects": jl(it["subjects"]), "status": it["status"],
+        "status_date": it["status_date"], "link": it["url"],
+        "tags": jl(a["tags"]) if a else [], "tribal": a["tribal"] if a else "none",
+        "consultation": a["consultation"] if a else "unknown", "gap": bool(a and a["gap"]),
+        "basis": a["basis"] if a else "title only", "version": a["text_version"] if a else None,
+        "review": dict(rv) if rv else None,
+    }
+    docs = db.execute("SELECT kind, version, file, date, url FROM docs WHERE key=? ORDER BY date", (key,)).fetchall()
+    txt = [d for d in docs if d["kind"] in ("version", "lc")]
+    fis = [d for d in docs if d["kind"] == "fiscal"]
+    rec["text_url"] = txt[-1]["url"] if txt else None
+    rec["fiscal_url"] = fis[-1]["url"] if fis else None
+    evs = db.execute("SELECT ts, detail, priority FROM events WHERE item_key=? ORDER BY id DESC LIMIT 8",
+                     (key,)).fetchall()
+    rec["updated"] = evs[0]["ts"] if evs else it["last_changed"]
+    if not full:
+        return rec
+    rec.update({
+        "signals": jl(a["signals"]) if a else [], "score": a["tribal_score"] if a else 0,
+        "evidence": jl(a["consultation_evidence"]) if a else [], "mca": (jl(a["mca"]) if a else [])[:15],
+        "versions": [{"label": d["version"], "date": d["date"][:10], "url": d["url"]} for d in txt],
+        "fiscal": [{"label": d["version"], "date": d["date"][:10], "url": d["url"]} for d in fis],
+        "amendments": [{"file": d["file"], "date": d["date"][:10], "url": d["url"]}
+                       for d in docs if d["kind"] == "amendment"][-6:],
+        "changes": [dict(jl(c["summary"], {}), created=c["created"]) for c in db.execute(
+            "SELECT summary, created FROM changes WHERE key=? ORDER BY id DESC LIMIT 3", (key,))],
+        "history": jl(it["history"])[-6:],
+        "events": [{"ts": e["ts"], "detail": e["detail"], "priority": e["priority"] or 0} for e in evs],
+        "hearings": jl((db.execute("SELECT hearings FROM calendar WHERE key=?", (key,)).fetchone() or {"hearings": "[]"})["hearings"]),
+    })
+    return rec
 
 
-def collect_digest(db, min_score):
-    rows = db.execute("""SELECT e.*, f.score, f.tier, f.matches, f.snippets, f.basis
-                         FROM events e JOIN flags f ON f.item_key=e.item_key
-                         WHERE e.digested IS NULL AND f.score >= ?
-                         ORDER BY f.score DESC, e.ts""", (min_score,)).fetchall()
+# --------------------------------------------------------------------------- feed for the app
+def screen_missing(cfg, db):
+    """Score any item that has never been screened (e.g. carried over from version 1)."""
+    missing = [r["key"] for r in db.execute(
+        "SELECT i.key FROM items i LEFT JOIN analysis a ON a.key=i.key WHERE a.key IS NULL")]
+    if missing:
+        an = Analyzer(cfg)
+        for k in missing:
+            screen_item(db, an, k)
+        db.execute("UPDATE events SET digested='baseline' WHERE digested IS NULL AND kind='flagged' "
+                   "AND item_key IN (%s)" % ",".join("?" * len(missing)), missing) if len(missing) < 900 else \
+            db.execute("UPDATE events SET digested='baseline' WHERE digested IS NULL AND kind='flagged'")
+        db.commit()
+        print(f"Screened {len(missing)} items that had no score yet")
+
+
+def export_feed(cfg):
+    db = connect(cfg)
+    screen_missing(cfg, db)
+    site = cfg["_site"]
+    rc = cfg.get("review") or {}
+    (site / "config.js").write_text(
+        "window.BILLWATCH = " + json.dumps({
+            "supabaseUrl": rc.get("supabase_url"), "supabaseAnonKey": rc.get("supabase_anon_key"),
+            "currentSession": str(cfg["legmt"].get("current_session_id", 3)),
+            "sessionLabels": SESSION_LABELS}) + ";\n", encoding="utf-8")
+    sessions = []
+    for s in db.execute("SELECT DISTINCT session_id FROM items ORDER BY session_id DESC").fetchall():
+        sid = s["session_id"]
+        keys = db.execute("""SELECT i.key, a.tribal, a.tags FROM items i LEFT JOIN analysis a ON a.key=i.key
+                             LEFT JOIN reviews r ON r.key=i.key WHERE i.session_id=? AND
+                             (a.tribal != 'none' OR (a.tags IS NOT NULL AND a.tags != '[]') OR r.key IS NOT NULL)""",
+                          (sid,)).fetchall()
+        items = [item_record(db, k["key"], full=(k["tribal"] != "none")) for k in keys]
+        items.sort(key=lambda x: x["updated"] or "", reverse=True)
+        total = db.execute("SELECT COUNT(*) FROM items WHERE session_id=?", (sid,)).fetchone()[0]
+        fname = f"feed-{SESSION_LABELS.get(sid, sid)}.json"
+        feed = {"generated": now(), "session": sid, "label": SESSION_LABELS.get(sid, sid),
+                "total_tracked": total, "count": len(items), "items": items}
+        (site / fname).write_text(json.dumps(feed, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+        sessions.append({"id": sid, "label": SESSION_LABELS.get(sid, sid), "file": fname, "count": len(items)})
+        print(f"Feed: {fname} ({len(items)} of {total} items)")
+    cur = str(cfg["legmt"].get("current_session_id", 3))
+    (site / "sessions.json").write_text(json.dumps({"generated": now(), "current": cur, "sessions": sessions}),
+                                        encoding="utf-8")
+    legacy = site / "feed.json"
+    if legacy.exists():
+        legacy.unlink()
+
+
+# --------------------------------------------------------------------------- digest + alerts
+GROUPS = [
+    ("removed", "Consultation language removed by amendment"),
+    ("confirmed", "Confirmed by AIGPI"),
+    ("gap", "Tribal interests likely, no consultation provision"),
+    ("likely", "Tribal interests likely"),
+    ("possible", "Possible tribal interests"),
+]
+
+
+def collect_digest(db):
+    rows = db.execute("""SELECT e.item_key, e.detail, e.kind, e.priority FROM events e
+                         LEFT JOIN analysis a ON a.key=e.item_key LEFT JOIN reviews r ON r.key=e.item_key
+                         WHERE e.digested IS NULL AND (a.tribal IN ('likely','possible')
+                         OR r.tribal_interest='confirmed') ORDER BY e.id""").fetchall()
     items = {}
     for r in rows:
-        it = items.setdefault(r["item_key"], {"key": r["item_key"], "score": r["score"], "tier": r["tier"],
-                                              "matches": json.loads(r["matches"]),
-                                              "snippets": json.loads(r["snippets"]),
-                                              "basis": r["basis"], "events": []})
+        it = items.setdefault(r["item_key"], {"key": r["item_key"], "events": [], "kinds": set(), "priority": 0})
         it["events"].append(r["detail"])
-    # Fold an LC draft into its introduced bill when both have news
-    for key in [k for k in items if k.startswith("lc:")]:
-        lc = key.split(":")[2]
-        b = db.execute("SELECT bill_id FROM bills WHERE lc=?", (lc,)).fetchone()
-        if b and f"bill:{b['bill_id']}" in items:
-            items[f"bill:{b['bill_id']}"]["events"] += [f"({lc}) {e}" for e in items.pop(key)["events"]]
-    return list(items.values())
+        it["kinds"].add(r["kind"])
+        it["priority"] = max(it["priority"], r["priority"] or 0)
+    out = []
+    for it in items.values():
+        rec = item_record(db, it["key"])
+        rv = rec["review"] or {}
+        group = ("removed" if "consultation_removed" in it["kinds"] else
+                 "confirmed" if rv.get("tribal_interest") == "confirmed" else
+                 "gap" if rec["gap"] and rec["tribal"] == "likely" else rec["tribal"])
+        out.append(dict(it, rec=rec, group=group))
+    order = [g for g, _ in GROUPS]
+    out.sort(key=lambda x: (order.index(x["group"]) if x["group"] in order else 9, -x["priority"]))
+    return out
 
 
-TIER_HEAD = {"direct": "Direct references to tribes, tribal lands, or Indian law",
-             "geographic": "Mentions reservations, tribal nations, or nearby counties",
-             "indirect": "Topics that often affect tribal lands (worth a look)"}
+CONSULT_TEXT = {"present": "Consultation provision found", "notice only": "Notice to tribes only, no consultation",
+                "absent": "No consultation provision found", "unknown": "No text yet"}
 
 
-def render(db, items):
+def render(items):
     today = dt.date.today().isoformat()
-    h = [f"<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>MT Bill Watch {today}</title>",
+    h = [f"<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>Bill Watch {today}</title>",
          "<style>body{font-family:Arial,sans-serif;color:#1a1a1a;background:#fff;max-width:760px;margin:auto;"
-         "line-height:1.5;padding:1rem}a{color:#0645ad}h3{margin-bottom:.2rem}.meta{color:#333}"
-         "blockquote{border-left:4px solid #555;margin:.5rem 0;padding-left:.75rem;color:#222}</style></head><body>",
+         "line-height:1.5;padding:1rem}a{color:#0645ad}h3{margin-bottom:.2rem}"
+         "blockquote{border-left:4px solid #555;margin:.5rem 0;padding-left:.75rem}</style></head><body>",
          f"<h1>Montana Bill Watch: {today}</h1>",
-         f"<p>{len(items)} flagged item(s) with new activity. Flags come from keyword screening "
-         "and need human review before anyone acts on them.</p>"]
-    t = [f"MONTANA BILL WATCH: {today}", f"{len(items)} flagged item(s). Keyword screening; review before acting.", ""]
-    for tier in ("direct", "geographic", "indirect"):
-        group = [i for i in items if i["tier"] == tier]
+         f"<p>{len(items)} item(s) with new activity. Screening flags are leads for AIGPI review, "
+         "not conclusions.</p>"]
+    t = [f"MONTANA BILL WATCH: {today}", f"{len(items)} item(s). Screening flags need AIGPI review.", ""]
+    for g, head in GROUPS:
+        group = [i for i in items if i["group"] == g]
         if not group:
             continue
-        h.append(f"<h2>{html.escape(TIER_HEAD[tier])} ({len(group)})</h2>")
-        t += ["=" * 70, TIER_HEAD[tier].upper(), "=" * 70]
+        h.append(f"<h2>{html.escape(head)} ({len(group)})</h2>")
+        t += ["=" * 70, head.upper(), "=" * 70]
         for it in group:
-            d = describe(db, it["key"])
-            terms = ", ".join(sorted({m["term"].lower() for m in it["matches"]}))
+            d = it["rec"]
+            sig = "; ".join(f"{s['type']}: {', '.join(s['detail'][:4])}" for s in d["signals"])
+            who = d["requester"] + (f" (by request of {d['by_request_of']})"
+                                    if d["by_request_of"] and d["by_request_of"] != d["requester"] else "")
             h.append(f"<h3>{html.escape(d['id'])}: {html.escape(d['title'] or '')}</h3><ul>"
-                     f"<li>Requested/sponsored by: {html.escape(d['who'] or '—')}</li>"
+                     f"<li>Requested by: {html.escape(who or '—')}</li>"
+                     + (f"<li>Sponsor: {html.escape(d['sponsor'])}</li>" if d["sponsor"] else "") +
                      f"<li>Status: {html.escape(d['status'] or '—')}</li>"
                      f"<li>What's new: {html.escape('; '.join(it['events']))}</li>"
-                     f"<li>Matched terms ({html.escape(it['basis'])}): {html.escape(terms)}</li>")
-            for c in d.get("calendar") or []:
-                h.append(f"<li><strong>Hearing:</strong> {html.escape(str(c.get('date')))} "
-                         f"{html.escape(str(c.get('time','')))} {html.escape(str(c.get('location','')))}</li>")
-            if d["pdfs"]:
-                h.append(f"<li>Latest text saved at: {html.escape(d['pdfs'][-1])}</li>")
-            if d["link"]:
-                h.append(f"<li><a href='{html.escape(d['link'])}'>{html.escape(d['link_text'])}</a></li>")
-            h.append("</ul>")
-            for s in it["snippets"][:3]:
-                h.append(f"<blockquote>{html.escape(s)}</blockquote>")
-            t += [f"\n{d['id']}: {d['title']}", f"  By: {d['who'] or '—'}", f"  Status: {d['status']}",
-                  f"  New: {'; '.join(it['events'])}", f"  Terms ({it['basis']}): {terms}",
-                  f"  Link: {d['link']}"] + ([f"  Latest text: {d['pdfs'][-1]}"] if d["pdfs"] else [])
-            t += [f"  > {s}" for s in it["snippets"][:2]]
+                     f"<li>Consultation: {html.escape(CONSULT_TEXT.get(d['consultation'], d['consultation']))}</li>"
+                     f"<li>Pathways: {html.escape(', '.join(d['tags']) or '—')}</li>"
+                     f"<li>Why flagged ({html.escape(d['basis'])}): {html.escape(sig)}</li>"
+                     f"<li><a href='{html.escape(d['link'])}'>Open {html.escape(d['lc'])} in Bill Explorer</a></li>"
+                     + (f"<li><a href='{html.escape(d['text_url'])}'>Read the latest text (PDF)</a></li>" if d["text_url"] else "")
+                     + "</ul>")
+            for e in d["evidence"][:2]:
+                h.append(f"<blockquote>{html.escape(e['text'])}</blockquote>")
+            t += [f"\n{d['id']}: {d['title']}", f"  Requested by: {who or '—'}", f"  Status: {d['status']}",
+                  f"  New: {'; '.join(it['events'])}",
+                  f"  Consultation: {CONSULT_TEXT.get(d['consultation'], d['consultation'])}",
+                  f"  Pathways: {', '.join(d['tags']) or '—'}", f"  Why: {sig}", f"  Link: {d['link']}"]
     h.append("</body></html>")
     return "\n".join(h), "\n".join(t)
 
@@ -471,53 +707,22 @@ def send_email(cfg, subject, html_body, text_body):
     return True
 
 
-def digest(cfg, send=False):
-    db, scr = connect(cfg), Screener(cfg)
-    items = collect_digest(db, scr.min_score)
-    if not items:
-        print("No new flagged activity.")
-        return None
-    html_body, text_body = render(db, items)
-    stamp = dt.datetime.now().strftime("%Y-%m-%d_%H%M")
-    out = cfg["_data"] / "digests" / f"digest_{stamp}.html"
-    out.write_text(html_body, encoding="utf-8")
-    out.with_suffix(".txt").write_text(text_body, encoding="utf-8")
-    print(f"Digest: {out} ({len(items)} items)")
-    if send and cfg.get("push", {}).get("enabled"):
-        send_push(cfg, db, items)
-    if send and cfg.get("email", {}).get("enabled"):
-        n_direct = sum(i["tier"] == "direct" for i in items)
-        subj = f"{cfg['email'].get('subject_prefix','')} {len(items)} flagged ({n_direct} direct)".strip()
-        if not send_email(cfg, subj, html_body, text_body):
-            return out  # leave events undigested so they go out next time
-    db.execute("UPDATE events SET digested=? WHERE digested IS NULL", (now(),))
-    db.commit()
-    return out
-
-
-def send_push(cfg, db, items):
-    """Send one push notification per digest via ntfy (https://ntfy.sh or self-hosted)."""
+def send_push(cfg, items):
     pc = cfg["push"]
     topic = os.environ.get("BILLWATCH_NTFY_TOPIC") or pc.get("topic")
     if not topic:
         print("No ntfy topic set; skipping push.")
         return False
-    n_direct = sum(i["tier"] == "direct" for i in items)
-    hearing = any("hearing" in e.lower() for i in items for e in i["events"])
-    lines = []
-    for it in items[:6]:
-        d = describe(db, it["key"])
-        lines.append(f"{d['id']}: {d['title']}")
+    urgent = [i for i in items if i["group"] in ("removed", "confirmed", "gap") or i["priority"] >= 2]
+    lines = [f"{i['rec']['id']}: {i['rec']['title']}" for i in (urgent + [i for i in items if i not in urgent])[:6]]
     if len(items) > 6:
         lines.append(f"…and {len(items) - 6} more")
-    headers = {"Title": f"{len(items)} flagged bill update(s), {n_direct} direct",
-               "Priority": "high" if (n_direct or hearing) else "default",
-               "Tags": "scroll"}
+    title = f"{len(items)} bill update(s)" + (f", {len(urgent)} need attention" if urgent else "")
+    headers = {"Title": title, "Priority": "high" if urgent else "default", "Tags": "scroll"}
     if pc.get("app_url"):
         headers["Click"] = pc["app_url"]
-    token = os.environ.get("BILLWATCH_NTFY_TOKEN")
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
+    if os.environ.get("BILLWATCH_NTFY_TOKEN"):
+        headers["Authorization"] = f"Bearer {os.environ['BILLWATCH_NTFY_TOKEN']}"
     try:
         r = requests.post(f"{pc.get('server', 'https://ntfy.sh').rstrip('/')}/{topic}",
                           data="\n".join(lines).encode("utf-8"), headers=headers, timeout=30)
@@ -529,59 +734,69 @@ def send_push(cfg, db, items):
         return False
 
 
-def export_feed(cfg):
-    """Write the JSON feed the mobile app reads."""
-    db, scr = connect(cfg), Screener(cfg)
-    site = Path(cfg.get("site_dir", "docs"))
-    if not site.is_absolute():
-        site = cfg["_data"].parent / site
-    site.mkdir(parents=True, exist_ok=True)
-    out = []
-    for f in db.execute("SELECT * FROM flags WHERE score>=? ORDER BY score DESC", (scr.min_score,)).fetchall():
-        key = f["item_key"]
-        if key.startswith("lc:"):  # skip drafts that already became a tracked bill
-            lc = key.split(":")[2]
-            if db.execute("SELECT 1 FROM bills WHERE lc=?", (lc,)).fetchone():
-                continue
-        d = describe(db, key)
-        evs = db.execute("SELECT ts, detail FROM events WHERE item_key=? ORDER BY ts DESC LIMIT 8", (key,)).fetchall()
-        out.append({
-            "key": key, "kind": "draft" if key.startswith("lc:") else "bill",
-            "id": d["id"], "title": d["title"], "who": d["who"], "status": d["status"],
-            "tier": f["tier"], "score": f["score"], "basis": f["basis"],
-            "terms": sorted({m["term"].lower() for m in json.loads(f["matches"])}),
-            "snippets": json.loads(f["snippets"])[:3],
-            "link": d["link"], "text_url": d.get("text_url"), "text_type": d.get("text_type"),
-            "hearings": d.get("calendar") or [],
-            "updated": evs[0]["ts"] if evs else f["updated"],
-            "events": [{"ts": e["ts"], "detail": e["detail"]} for e in evs],
-        })
-    out.sort(key=lambda x: x["updated"], reverse=True)
-    feed = {"generated": now(), "count": len(out), "items": out}
-    (site / "feed.json").write_text(json.dumps(feed, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(f"Feed: {site / 'feed.json'} ({len(out)} items)")
+def digest(cfg, send=False):
+    db = connect(cfg)
+    items = collect_digest(db)
+    if not items:
+        db.execute("UPDATE events SET digested=? WHERE digested IS NULL", (now(),))
+        db.commit()
+        print("No new activity on items with tribal interests.")
+        return None
+    html_body, text_body = render(items)
+    out = cfg["_data"] / "digests" / f"digest_{dt.datetime.now():%Y-%m-%d_%H%M}.html"
+    out.write_text(html_body, encoding="utf-8")
+    out.with_suffix(".txt").write_text(text_body, encoding="utf-8")
+    print(f"Digest: {out} ({len(items)} items)")
+    if send and cfg.get("push", {}).get("enabled"):
+        send_push(cfg, items)
+    if send and cfg.get("email", {}).get("enabled"):
+        subj = f"{cfg['email'].get('subject_prefix', '')} {len(items)} update(s)".strip()
+        if not send_email(cfg, subj, html_body, text_body):
+            return out
+    db.execute("UPDATE events SET digested=? WHERE digested IS NULL", (now(),))
+    db.commit()
+    return out
 
 
+def report(cfg, out):
+    db = connect(cfg)
+    keys = [r["key"] for r in db.execute("""SELECT i.key FROM items i JOIN analysis a ON a.key=i.key
+                                            WHERE a.tribal != 'none' ORDER BY i.session_id DESC, a.tribal_score DESC""")]
+    with open(out, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["session", "id", "title", "tribal_interests", "consultation", "gap", "pathways",
+                    "signals", "requester", "by_request_of", "sponsor", "status", "aigpi_review",
+                    "aigpi_consultation", "link", "latest_text"])
+        for k in keys:
+            d = item_record(db, k)
+            rv = d["review"] or {}
+            w.writerow([SESSION_LABELS.get(d["session"], d["session"]), d["id"], d["title"], d["tribal"],
+                        d["consultation"], "yes" if d["gap"] else "", "; ".join(d["tags"]),
+                        "; ".join(f"{s['type']}: {', '.join(s['detail'])}" for s in d["signals"]),
+                        d["requester"], d["by_request_of"], d["sponsor"], d["status"],
+                        rv.get("tribal_interest") or "unreviewed", rv.get("consultation") or "",
+                        d["link"], d["text_url"] or ""])
+    print(f"Wrote {len(keys)} items to {out}")
+
+
+# --------------------------------------------------------------------------- local web interface
 def serve(cfg, port=8000, open_browser=True):
-    """Local web interface: serves the app and rebuilds feed.json from the db on every load."""
     import functools
     import http.server
     import webbrowser
-    site = Path(cfg.get("site_dir", "docs"))
-    if not site.is_absolute():
-        site = cfg["_data"].parent / site
 
     class Handler(http.server.SimpleHTTPRequestHandler):
         def do_GET(self):
-            if self.path.split("?")[0].endswith("feed.json"):
-                export_feed(cfg)  # always show what's in the database right now
+            if self.path.split("?")[0].endswith("sessions.json"):
+                export_feed(cfg)
             super().do_GET()
 
         def log_message(self, *args):
             pass
 
+    export_feed(cfg)
     httpd = http.server.ThreadingHTTPServer(("127.0.0.1", port),
-                                            functools.partial(Handler, directory=str(site)))
+                                            functools.partial(Handler, directory=str(cfg["_site"])))
     url = f"http://localhost:{port}/"
     print(f"Bill Watch is running at {url}  (press Ctrl+C to stop)")
     if open_browser:
@@ -592,29 +807,22 @@ def serve(cfg, port=8000, open_browser=True):
         print("Stopped.")
 
 
-def report(cfg, out):
-    db, scr = connect(cfg), Screener(cfg)
-    rows = db.execute("SELECT * FROM flags WHERE score>=? ORDER BY score DESC", (scr.min_score,)).fetchall()
-    with open(out, "w", newline="", encoding="utf-8") as f:
-        w = csv.writer(f)
-        w.writerow(["id", "title", "tier", "score", "basis", "matched_terms", "status", "who", "link"])
-        for r in rows:
-            d = describe(db, r["item_key"])
-            terms = ", ".join(sorted({m["term"].lower() for m in json.loads(r["matches"])}))
-            w.writerow([d["id"], d["title"], r["tier"], r["score"], r["basis"], terms,
-                        d["status"], d["who"], d["link"]])
-    print(f"Wrote {len(rows)} flagged items to {out}")
-
-
+# --------------------------------------------------------------------------- run everything
 def run(cfg, send=False):
     inbox = cfg["_data"] / "inbox"
     for p in sorted(inbox.glob("*.csv"), key=lambda x: x.stat().st_mtime):
         ingest_csv(cfg, p)
         shutil.move(str(p), inbox / "processed" / f"{dt.datetime.now():%Y%m%d_%H%M%S}_{p.name}")
-    if os.environ.get("LEGISCAN_API_KEY"):
-        legiscan_sync(cfg)
-    else:
-        print("LEGISCAN_API_KEY not set; skipping LegiScan.")
+    if cfg.get("legmt", {}).get("enabled", True):
+        try:
+            legmt_sync(cfg)
+        except LegMTError as e:
+            print(f"Bill Explorer: {e}")
+    try:
+        legiscan_calendar(cfg)
+    except Exception as e:  # noqa: BLE001
+        print(f"LegiScan: {e}")
+    pull_reviews(cfg)
     digest(cfg, send)
     export_feed(cfg)
 
@@ -624,43 +832,51 @@ def main():
     ap.add_argument("--config", default=str(HERE / "config.yaml"))
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("init")
+    p = sub.add_parser("sync"); p.add_argument("--session"); p.add_argument("--max-text", type=int)
+    p = sub.add_parser("backfill"); p.add_argument("--session", default="2"); p.add_argument("--limit", type=int)
     p = sub.add_parser("ingest-csv"); p.add_argument("files", nargs="+")
-    p.add_argument("--no-alerts", action="store_true", help="load as a baseline without creating alerts")
-    sub.add_parser("legiscan-sessions")
-    sub.add_parser("legiscan-sync")
-    sub.add_parser("screen")
-    sub.add_parser("feed")
-    p = sub.add_parser("serve"); p.add_argument("--port", type=int, default=8000)
+    p.add_argument("--no-alerts", action="store_true")
+    sub.add_parser("reviews")
+    p = sub.add_parser("screen"); p.add_argument("--session")
     p = sub.add_parser("digest"); p.add_argument("--send", action="store_true")
+    sub.add_parser("feed")
     p = sub.add_parser("report"); p.add_argument("--out", default="flagged_items.csv")
+    p = sub.add_parser("serve"); p.add_argument("--port", type=int, default=8000)
     p = sub.add_parser("run"); p.add_argument("--send", action="store_true")
     a = ap.parse_args()
     cfg = load_config(a.config)
-
-    if a.cmd == "init":
-        connect(cfg); print(f"Ready. Data folder: {cfg['_data']}")
-    elif a.cmd == "ingest-csv":
-        for f in a.files:
-            ingest_csv(cfg, f)
-        if a.no_alerts:
-            db = connect(cfg); db.execute("UPDATE events SET digested='baseline' WHERE digested IS NULL"); db.commit()
-            print("Baseline loaded; existing items won't appear in the next digest.")
-    elif a.cmd == "legiscan-sessions":
-        legiscan_sessions(cfg)
-    elif a.cmd == "legiscan-sync":
-        legiscan_sync(cfg)
-    elif a.cmd == "screen":
-        rescreen(cfg)
-    elif a.cmd == "feed":
-        export_feed(cfg)
-    elif a.cmd == "serve":
-        serve(cfg, a.port)
-    elif a.cmd == "digest":
-        digest(cfg, a.send)
-    elif a.cmd == "report":
-        report(cfg, a.out)
-    elif a.cmd == "run":
-        run(cfg, a.send)
+    try:
+        if a.cmd == "init":
+            connect(cfg)
+            print(f"Ready. Data folder: {cfg['_data']}")
+        elif a.cmd == "sync":
+            legmt_sync(cfg, a.session, max_text=a.max_text)
+        elif a.cmd == "backfill":
+            backfill(cfg, a.session, limit=a.limit)
+        elif a.cmd == "ingest-csv":
+            for f in a.files:
+                ingest_csv(cfg, f)
+            if a.no_alerts:
+                db = connect(cfg)
+                db.execute("UPDATE events SET digested='baseline' WHERE digested IS NULL")
+                db.commit()
+                print("Loaded as a baseline; these won't appear in the next digest.")
+        elif a.cmd == "reviews":
+            pull_reviews(cfg)
+        elif a.cmd == "screen":
+            rescreen(cfg, a.session)
+        elif a.cmd == "digest":
+            digest(cfg, a.send)
+        elif a.cmd == "feed":
+            export_feed(cfg)
+        elif a.cmd == "report":
+            report(cfg, a.out)
+        elif a.cmd == "serve":
+            serve(cfg, a.port)
+        elif a.cmd == "run":
+            run(cfg, a.send)
+    except LegMTError as e:
+        sys.exit(str(e))
 
 
 if __name__ == "__main__":

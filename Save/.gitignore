@@ -1,0 +1,4 @@
+data/texts/
+data/digests/
+__pycache__/
+*.pyc

@@ -1,5 +1,6 @@
-// Bill Watch service worker: app shell works offline; feed is network-first.
-const CACHE = "billwatch-v1";
+// Bill Watch service worker: the app works offline; data is network-first.
+// Change CACHE when you edit index.html so phones pick up the new version.
+const CACHE = "billwatch-v2";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png"];
 
 self.addEventListener("install", e => {
@@ -11,14 +12,15 @@ self.addEventListener("activate", e => {
 });
 self.addEventListener("fetch", e => {
   const url = new URL(e.request.url);
-  if (url.origin !== location.origin) return;
-  if (url.pathname.endsWith("feed.json")) {
+  if (url.origin !== location.origin || e.request.method !== "GET") return;
+  const p = url.pathname;
+  if (p.endsWith(".json") || p.endsWith("config.js") || p.endsWith("/") || p.endsWith("index.html")) {
     // Network first; fall back to the last copy when offline.
+    const cacheKey = p.split("/").pop() || "./";
     e.respondWith(fetch(e.request).then(r => {
-      const copy = r.clone();
-      caches.open(CACHE).then(c => c.put("feed.json", copy));
+      if (r.ok) { const copy = r.clone(); caches.open(CACHE).then(c => c.put(cacheKey, copy)); }
       return r;
-    }).catch(() => caches.match("feed.json")));
+    }).catch(() => caches.match(cacheKey)));
     return;
   }
   e.respondWith(caches.match(e.request).then(hit => hit || fetch(e.request)));

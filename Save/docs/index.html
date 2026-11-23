@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bill Watch</title>
+<meta name="description" content="Montana legislative drafts and bills flagged for possible effects on tribal lands and communities.">
+<meta name="theme-color" content="#1e5a7a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Bill Watch">
+<style>
+:root{
+  --paper:#f3f6f7; --surface:#ffffff; --ink:#18232c; --muted:#4a5864; --rule:#cfd8dd;
+  --river:#1e5a7a; --direct:#8a2b1f; --geo:#7a5200; --watch:#4b5d6b; --new:#1e5a7a;
+  --focus:#c27c00; color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#121a20; --surface:#19232b; --ink:#e6edf1; --muted:#a8b6c0; --rule:#2c3a44;
+  --river:#7fbde0; --direct:#f09a8c; --geo:#e6b85c; --watch:#a9bccb; --new:#7fbde0; --focus:#f0b44c;
+  color-scheme:dark;}}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--paper)}
+a{color:var(--river)}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.skip{position:absolute;left:-999px}.skip:focus{left:1rem;top:1rem;background:var(--surface);padding:.5rem;z-index:20}
+.wrap{max-width:46rem;margin:0 auto;padding:0 1rem 3rem}
+header{padding:1.25rem 0 .75rem;border-bottom:2px solid var(--ink)}
+h1{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-weight:600;
+  font-size:2rem;line-height:1.1;margin:0;letter-spacing:-.01em}
+.sub{margin:.35rem 0 0;color:var(--muted);font-size:.9rem}
+.bar{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin:1rem 0 .5rem}
+.seg{display:flex;border:1px solid var(--ink);border-radius:6px;overflow:hidden}
+.seg button{font:inherit;font-size:.9rem;background:var(--surface);color:var(--ink);border:0;
+  padding:.45rem .7rem;min-height:44px;cursor:pointer;border-right:1px solid var(--ink)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.search{flex:1 1 12rem}
+.search input{width:100%;font:inherit;padding:.5rem .7rem;min-height:44px;border:1px solid var(--muted);
+  border-radius:6px;background:var(--surface);color:var(--ink)}
+.refresh{font:inherit;font-size:.9rem;min-height:44px;padding:.45rem .8rem;border:1px solid var(--river);
+  color:var(--river);background:transparent;border-radius:6px;cursor:pointer}
+.status{color:var(--muted);font-size:.9rem;margin:.25rem 0 1rem}
+h2{font-size:1rem;margin:1.5rem 0 .5rem}
+.hearings{border:2px solid var(--direct);border-radius:6px;padding:.25rem .9rem .75rem;background:var(--surface)}
+.hearings h2{margin-top:.6rem;color:var(--direct)}
+.hearings ul{margin:0;padding-left:1.1rem}
+ol.items{list-style:none;margin:0;padding:0}
+.item{border-bottom:1px solid var(--rule)}
+.item details>summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:2.4rem 1fr;
+  gap:.6rem;padding:.9rem 0;min-height:44px}
+.item details>summary::-webkit-details-marker{display:none}
+/* Tier weight: three bars, filled by tier rank. Paired with a text label, never color alone. */
+.weight{display:flex;flex-direction:column;gap:3px;padding-top:.35rem}
+.weight i{display:block;height:5px;border:1.5px solid currentColor;border-radius:1px}
+.weight i.on{background:currentColor}
+.t-direct{color:var(--direct)}.t-geographic{color:var(--geo)}.t-indirect{color:var(--watch)}
+.top{display:flex;gap:.5rem;flex-wrap:wrap;align-items:baseline;font-size:.85rem;color:var(--muted)}
+.idn{font-weight:700;color:var(--ink);font-size:.95rem}
+.tier{font-weight:600}
+.new{font-weight:700;color:var(--new)}
+.title{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:1.12rem;
+  line-height:1.35;margin:.15rem 0 .2rem;color:var(--ink)}
+.latest{font-size:.88rem;color:var(--muted)}
+.body{padding:0 0 1rem 3rem;font-size:.93rem}
+.body dl{display:grid;grid-template-columns:max-content 1fr;gap:.25rem .8rem;margin:0 0 .75rem}
+.body dt{color:var(--muted)}.body dd{margin:0}
+blockquote{margin:.5rem 0;padding:.1rem 0 .1rem .8rem;border-left:3px solid var(--rule);color:var(--ink)}
+.links{display:flex;gap:1rem;flex-wrap:wrap;margin:.5rem 0}
+.links a{display:inline-block;min-height:44px;line-height:44px}
+.hist{margin:.25rem 0 0;padding-left:1.1rem;color:var(--muted)}
+.empty{padding:2rem 0;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.item details[open] .body{animation:open .18s ease-out}
+  @keyframes open{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}}
+</style>
+</head>
+<body>
+<a class="skip" href="#list">Skip to flagged items</a>
+<div class="wrap">
+  <header>
+    <h1>Bill Watch</h1>
+    <p class="sub">Montana drafts and bills that may affect tribal lands, nations, and nearby communities. Flags come from keyword screening; read the text before acting.</p>
+  </header>
+
+  <div class="bar" role="toolbar" aria-label="Filter flagged items">
+    <div class="seg" id="tiers">
+      <button type="button" data-tier="all" aria-pressed="true">All</button>
+      <button type="button" data-tier="direct" aria-pressed="false">Direct</button>
+      <button type="button" data-tier="geographic" aria-pressed="false">Geographic</button>
+      <button type="button" data-tier="indirect" aria-pressed="false">Watch</button>
+    </div>
+    <label class="search"><span class="skip">Search by number, title, sponsor, or term</span>
+      <input id="q" type="search" placeholder="Search bills, sponsors, terms" autocomplete="off"></label>
+    <button type="button" class="refresh" id="refresh">Refresh</button>
+  </div>
+  <p class="status" id="status" role="status" aria-live="polite">Loading…</p>
+
+  <section id="hearings" class="hearings" hidden aria-labelledby="h-hear">
+    <h2 id="h-hear">Upcoming hearings</h2><ul id="hear-list"></ul>
+  </section>
+
+  <h2 id="list-h" class="skip">Flagged items</h2>
+  <ol class="items" id="list" aria-labelledby="list-h" tabindex="-1"></ol>
+</div>
+
+<script>
+const TIER = {direct:["Direct",3], geographic:["Geographic",2], indirect:["Watch",1]};
+const state = {feed:null, tier:"all", q:""};
+let lastVisit = null;
+try { lastVisit = localStorage.getItem("bw-last-visit"); } catch(e) {}
+
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const when = ts => { if(!ts) return ""; const d = new Date(ts);
+  return isNaN(d) ? ts : d.toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}); };
+
+function weight(tier){
+  const n = (TIER[tier]||["",0])[1];
+  return `<span class="weight t-${esc(tier)}" aria-hidden="true">${[3,2,1].map(i=>`<i class="${i<=n?"on":""}"></i>`).join("")}</span>`;
+}
+
+function itemHTML(it){
+  const [label] = TIER[it.tier] || ["Flag"];
+  const isNew = lastVisit && it.updated > lastVisit;
+  const ev = (it.events||[]).find(e => !/^(Matched|Now matches)/.test(e.detail));
+  const latest = !ev || /^New draft request/.test(ev.detail) ? `Status: ${it.status}` : ev.detail;
+  const hearings = (it.hearings||[]).map(h=>`<li>${esc(h.type||"Hearing")}: ${esc(h.date)} ${esc(h.time||"")} ${esc(h.location||"")}</li>`).join("");
+  return `<li class="item"><details>
+    <summary>${weight(it.tier)}<div>
+      <div class="top"><span class="idn">${esc(it.id)}</span>
+        <span class="tier t-${esc(it.tier)}">${label}</span>
+        <span>${it.kind==="draft"?"Draft request":"Bill"}</span>
+        ${isNew?'<span class="new">New since last visit</span>':""}</div>
+      <p class="title">${esc(it.title)}</p>
+      <div class="latest">${esc(latest)} <span>(${esc(when(it.updated))})</span></div>
+    </div></summary>
+    <div class="body">
+      <dl>
+        <dt>Requested by</dt><dd>${esc(it.who||"—")}</dd>
+        <dt>Status</dt><dd>${esc(it.status||"—")}</dd>
+        <dt>Matched</dt><dd>${esc((it.terms||[]).join(", "))} <span>(${esc(it.basis)})</span></dd>
+      </dl>
+      ${hearings?`<p><strong>Hearings</strong></p><ul>${hearings}</ul>`:""}
+      ${(it.snippets||[]).map(s=>`<blockquote>${esc(s)}</blockquote>`).join("")}
+      <div class="links">
+        ${it.text_url?`<a href="${esc(it.text_url)}" target="_blank" rel="noopener">Read ${esc(it.text_type||"latest")} text of ${esc(it.id.split(" ")[0])} (PDF)</a>`:""}
+        ${it.link?`<a href="${esc(it.link)}" target="_blank" rel="noopener">Open ${esc(it.id.split(" ")[0])} in Bill Explorer</a>`:""}
+      </div>
+      ${(it.events||[]).length?`<p><strong>Activity</strong></p><ul class="hist">${it.events.map(e=>`<li>${esc(when(e.ts))}: ${esc(e.detail)}</li>`).join("")}</ul>`:""}
+    </div></details></li>`;
+}
+
+function render(){
+  const f = state.feed; if(!f) return;
+  const q = state.q.toLowerCase().trim();
+  const items = f.items.filter(it =>
+    (state.tier==="all" || it.tier===state.tier) &&
+    (!q || [it.id,it.title,it.who,(it.terms||[]).join(" ")].join(" ").toLowerCase().includes(q)));
+  const list = document.getElementById("list");
+  list.innerHTML = items.length ? items.map(itemHTML).join("")
+    : `<li class="empty">No flagged items match. Clear the search or choose All.</li>`;
+  const nNew = lastVisit ? f.items.filter(i=>i.updated>lastVisit).length : 0;
+  document.getElementById("status").textContent =
+    `${items.length} of ${f.count} flagged items shown. Updated ${when(f.generated)}.` + (nNew?` ${nNew} new since your last visit.`:"");
+
+  const today = new Date().toISOString().slice(0,10);
+  const hear = f.items.flatMap(it => (it.hearings||[]).filter(h=>(h.date||"")>=today).map(h=>({h,it})))
+    .sort((a,b)=>(a.h.date+(a.h.time||"")).localeCompare(b.h.date+(b.h.time||"")));
+  const box = document.getElementById("hearings");
+  box.hidden = !hear.length;
+  document.getElementById("hear-list").innerHTML = hear.slice(0,8).map(({h,it}) =>
+    `<li><strong>${esc(h.date)} ${esc(h.time||"")}</strong>: ${esc(it.id)}, ${esc(it.title)} (${esc(h.location||"location TBD")})</li>`).join("");
+}
+
+async function load(){
+  const st = document.getElementById("status");
+  st.textContent = "Loading…";
+  try {
+    const r = await fetch("feed.json?t=" + Date.now(), {cache:"no-store"});
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    state.feed = await r.json();
+    render();
+  } catch(e) {
+    st.textContent = "Couldn't load the feed. Check your connection, then tap Refresh.";
+  }
+}
+
+document.getElementById("tiers").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  state.tier = b.dataset.tier;
+  document.querySelectorAll("#tiers button").forEach(x => x.setAttribute("aria-pressed", x===b));
+  render();
+});
+document.getElementById("q").addEventListener("input", e => { state.q = e.target.value; render(); });
+document.getElementById("refresh").addEventListener("click", load);
+window.addEventListener("pagehide", () => {
+  try { if(state.feed) localStorage.setItem("bw-last-visit", state.feed.generated); } catch(e) {}
+});
+if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+load();
+</script>
+</body>
+</html>

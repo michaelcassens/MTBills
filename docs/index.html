@@ -227,6 +227,11 @@ function reviewForm(i){
     <h3>Internal notes</h3><ul class="notes"><li class="hist">Loading…</li></ul>
   </form>`;
 }
+function reviewArea(i){
+  if (state.reviewer) return reviewForm(i);
+  if (state.user) return `<p class="review">Signed in as ${esc(state.user.email)}, but that email isn't on the AIGPI reviewer list, so the review form is hidden. Add it in Supabase under Table Editor, reviewers, Insert row, then sign out and back in.</p>`;
+  return "";
+}
 function itemHTML(i){
   const [lvl] = LEVEL[i.tribal] || LEVEL.none;
   const [ctext, ccls] = CONSULT[i.consultation] || CONSULT.unknown;
@@ -243,7 +248,8 @@ function itemHTML(i){
       <dl>${i.requester?`<dt>Requested by</dt><dd>${esc(i.requester)}</dd>`:""}
         <dt>Status</dt><dd>${esc(i.status)}</dd><dt>Pathways</dt><dd>${esc((i.tags||[]).join(", "))}</dd></dl>
       <div class="links"><a href="${esc(i.link)}" target="_blank" rel="noopener">Open ${esc(short)} in Bill Explorer</a>
-        ${i.text_url?`<a href="${esc(i.text_url)}" target="_blank" rel="noopener">Latest text of ${esc(short)} (PDF)</a>`:""}</div>` : `
+        ${i.text_url?`<a href="${esc(i.text_url)}" target="_blank" rel="noopener">Latest text of ${esc(short)} (PDF)</a>`:""}</div>
+      ${reviewArea(i)}` : `
       <dl>
         <dt>Requested by</dt><dd>${esc(who||"—")}</dd>
         ${i.by_request_of && i.by_request_of!==i.requester?`<dt>By request of</dt><dd>${esc(i.by_request_of)}</dd>`:""}
@@ -270,7 +276,7 @@ function itemHTML(i){
       </div>
       ${(i.mca||[]).length?`<p class="hist">Cites MCA ${esc(i.mca.join(", "))}</p>`:""}
       ${(i.events||[]).length?`<h3>Activity</h3><ul class="hist">${i.events.map(e=>`<li>${esc(when(e.ts))}: ${esc(e.detail)}</li>`).join("")}</ul>`:""}
-      ${state.reviewer?reviewForm(i):""}`;
+      ${reviewArea(i)}`;
   return `<li class="item"><details data-key="${esc(i.key)}">
     <summary>${weight(i.tribal)}<div>
       <div class="top"><span class="idn">${esc(i.id)}</span>
@@ -367,7 +373,7 @@ function renderAccount(msg){
   const box = document.getElementById("account");
   if (!state.sb) { box.innerHTML = ""; return; }
   if (state.user) {
-    box.innerHTML = `${esc(state.user.email)}${state.reviewer?", AIGPI reviewer":", not on the reviewer list"}
+    box.innerHTML = `Signed in as ${esc(state.user.email)}${state.reviewer?" (AIGPI reviewer)":". <strong>Not on the reviewer list.</strong>"}
       <button type="button" class="link" id="signout">Sign out</button>`;
   } else {
     box.innerHTML = `<form id="signin"><label><span class="sr">Reviewer email</span>
